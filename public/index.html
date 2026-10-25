@@ -365,7 +365,12 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     const players = new Map();
     state.demons.forEach((d,i) => {
       const pos = i+1;
-      for (const r of d.records||[]){
+      // El verificador cuenta como un 100% (si no está ya en los récords)
+      const list = (d.records||[]).slice();
+      const ver = (d.verifier||"").trim();
+      if (ver && !list.some(r => (r.player||"").trim().toLowerCase() === ver.toLowerCase() && +r.progress >= 100))
+        list.push({player: ver, progress: 100});
+      for (const r of list){
         const key = (r.player||"").trim(); if (!key) continue;
         const p = players.get(key.toLowerCase()) || {name:key, pts:0, beaten:0, prog:0, hardest:null, hardestPos:Infinity};
         const pr = +r.progress||0;
