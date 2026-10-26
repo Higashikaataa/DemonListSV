@@ -138,6 +138,13 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
 .roul-hist div{display:flex;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:.92rem}
 .roul-hist b{font-family:var(--display);font-variant-numeric:tabular-nums}
 .inline-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.plink{background:none;border:none;padding:0;color:var(--accent);font-weight:700;cursor:pointer;text-align:left}
+.plink:hover{text-decoration:underline}
+.lvchips{display:flex;flex-wrap:wrap;gap:6px}
+.lvchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface-2);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:.9rem;max-width:100%;text-align:left}
+.lvchip:hover{border-color:var(--accent)}
+.lvpos{font-family:var(--display);font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.lvpts{font-family:var(--display);font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums;margin-left:2px}
 .inline-form input{width:110px;background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:8px 10px}
 </style>
 </head>
@@ -206,19 +213,67 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
   let tab = "main", openDemon = null, query = "";
   try { password = sessionStorage.getItem("dl_pw") || ""; } catch {}
 
-  // ---------- puntos (aproximación de la fórmula de Pointercrate) ----------
+  // ---------- puntos (fórmula de Pointercrate: #1 = 350, #150 = 18.71) ----------
   function basePoints(pos){
-    if (pos > state.extSize) return 0;
-    if (pos <= 55) return 1.039035131 * (185.7 * Math.exp(-0.02715 * pos) + 14.84);
-    return 1.0371139743 * (56.191 * Math.pow(2, (54.147 - (pos + 3.2)) * Math.log(50) / 99) + 6.273);
+    if (pos < 1 || pos > state.extSize || pos > 150) return 0;
+    if (pos <= 3)  return -18.2899079915 * pos + 368.2899079915;
+    if (pos <= 20) return (326.1 * Math.exp(-0.0871 * pos) + 51.09) * 1.037117142;
+    if (pos <= 35) return ((250 - 83.389) * Math.pow(1.0099685, 2 - pos) - 31.152) * 1.0371139743;
+    if (pos <= 55) return (212.61 * Math.pow(1.036, 1 - pos) + 25.071) * 1.0371139743;
+    return (185.7 * Math.exp(-0.02715 * pos) + 14.84) * 1.039035131;
+  }
+  // List% que pones en cada nivel. Vacío o 100 = solo cuenta el 100%.
+  // Al llegar justo al list% se gana el 10% de los puntos (ej. #1: 35.00), y sube hasta el total al 100%.
+  function reqFor(d, pos){
+    const r = Number(d.req);
+    return (r >= 1 && r < 100) ? r : 100;
   }
   function recordPoints(pos, progress, req){
     const b = basePoints(pos);
     if (!b) return 0;
     if (progress >= 100) return b;
-    if (progress < req) return 0;
+    // Como en Pointercrate: los porcentajes solo cuentan en la lista principal
+    if (pos > state.mainSize || req >= 100 || progress < req) return 0;
     return b * Math.pow(5, (progress - req) / (100 - req)) / 10;
   }
+
+  // ---------- jugadores ----------
+  function buildPlayers(){
+    const players = new Map();
+    const get = name => {
+      const k = name.toLowerCase();
+      if (!players.has(k)) players.set(k, {name, pts:0, entries:[]});
+      return players.get(k);
+    };
+    state.demons.forEach((d,i) => {
+      const pos = i+1, req = reqFor(d,pos);
+      const seen = new Set();
+      const ver = (d.verifier||"").trim();
+      if (ver){
+        const p = get(ver); const pts = recordPoints(pos,100,req);
+        p.pts += pts; p.entries.push({d,pos,progress:100,pts,verified:true,video:d.video});
+        seen.add(ver.toLowerCase());
+      }
+      for (const r of d.records||[]){
+        const name = (r.player||"").trim(); if (!name) continue;
+        const k = name.toLowerCase();
+        const pr = Math.max(0,Math.min(100,+r.progress||0));
+        if (seen.has(k)){
+          // mismo jugador repetido: se queda solo con su mejor progreso
+          const p = get(name), e = p.entries.find(x => x.d === d);
+          if (e && !e.verified && pr > e.progress){ const np = recordPoints(pos,pr,req); p.pts += np - e.pts; Object.assign(e,{progress:pr,pts:np,video:r.video}); }
+          continue;
+        }
+        seen.add(k);
+        const p = get(name), pts = recordPoints(pos,pr,req);
+        p.pts += pts; p.entries.push({d,pos,progress:pr,pts,verified:false,video:r.video});
+      }
+    });
+    const rows = [...players.values()].sort((a,b)=>b.pts-a.pts || a.name.localeCompare(b.name));
+    rows.forEach((p,i) => p.rank = i+1);
+    return rows;
+  }
+  let openPlayer = null;
   const fmt = n => n.toFixed(2);
   const section = pos => pos <= state.mainSize ? "main" : pos <= state.extSize ? "ext" : "leg";
 
@@ -255,13 +310,14 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     $("#topLinks").innerHTML =
       (state.discordUrl ? `<a class="btn" href="${esc(state.discordUrl)}" target="_blank" rel="noopener">Discord</a>` : "") +
       (state.submitUrl ? `<a class="btn primary" href="${esc(state.submitUrl)}" target="_blank" rel="noopener">Subir récord</a>` : "");
-    document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === tab && !openDemon)));
+    document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === tab && !openDemon && !openPlayer)));
     $("#loginBox").hidden = editing;
     $("#editorTools").hidden = !editing;
     if (!loaded) return;
     const v = $("#view");
-    if (openDemon){ v.innerHTML = detailHTML(); bindDetail(); return; }
-    if (tab === "stats"){ v.innerHTML = statsHTML(); return; }
+    if (openDemon){ v.innerHTML = detailHTML(); bindDetail(); bindPlayerLinks(); return; }
+    if (openPlayer){ v.innerHTML = profileHTML(); bindProfile(); return; }
+    if (tab === "stats"){ v.innerHTML = statsHTML(); bindPlayerLinks(); return; }
     if (tab === "roul"){ v.innerHTML = roulHTML(); bindRoul(); return; }
     v.innerHTML = listHTML();
     bindList();
@@ -323,7 +379,8 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     const d = state.demons[i], pos = i+1, sec = section(pos);
     const chip = sec==="main" ? `<span class="chip">Principal</span>` : sec==="ext" ? `<span class="chip ext">Extendida</span>` : `<span class="chip leg">Legacy</span>`;
     const recs = (d.records||[]).slice().sort((a,b)=>b.progress-a.progress);
-    const video = ytLink(d.video), ts = thumbSrc(d);
+    const video = ytLink(d.video), ts = thumbSrc(d), req = reqFor(d,pos);
+    const progOk = basePoints(pos) && pos <= state.mainSize && req < 100;
     let html = `<button class="back" id="back">← Volver a la lista</button>
     <div class="detail-hero">
       ${ts ? `<div class="thumb"><img src="${esc(ts)}" alt="Miniatura de ${esc(d.name)}"></div>` : `<div class="thumb"><span class="ph">#${pos}</span></div>`}
@@ -333,9 +390,9 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
         <div class="facts">
           <div class="fact"><span>Publicador</span><b>${esc(d.publisher||"—")}</b></div>
           <div class="fact"><span>Creador(es)</span><b>${esc(d.creator||"—")}</b></div>
-          <div class="fact"><span>Verificador</span><b>${esc(d.verifier||"—")}</b></div>
+          <div class="fact"><span>Verificador</span><b>${d.verifier?plink(d.verifier.trim()):"—"}</b></div>
           <div class="fact"><span>ID del nivel</span><b>${esc(d.levelId||"—")}</b></div>
-          <div class="fact"><span>Requisito</span><b>${d.req ?? 100}%</b></div>
+          <div class="fact"><span>List%</span><b>${progOk?req+"%":"100%"}</b></div>
           <div class="fact"><span>Puntos (100%)</span><b>${basePoints(pos)?fmt(basePoints(pos)):"0"}</b></div>
         </div>
         <div class="btn-row" style="margin-top:14px">
@@ -345,48 +402,89 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
       </div>
     </div>
     ${d.notes ? `<div class="panel" style="margin-top:16px"><h3>Notas</h3><p>${esc(d.notes)}</p></div>` : ""}
-    <div class="section-head" style="margin-top:22px;margin-bottom:0"><h2>Récords</h2><span class="count">${recs.length} ${recs.length===1?"récord":"récords"}${basePoints(pos)?` · mínimo para entrar: ${d.req ?? 100}%`:""}</span></div>`;
+    <div class="section-head" style="margin-top:22px;margin-bottom:0"><h2>Récords</h2><span class="count">${recs.length} ${recs.length===1?"récord":"récords"}${progOk?` · list%: ${req}%`:basePoints(pos)?" · solo cuenta el 100%":""}</span></div>`;
     if (!recs.length) return html + `<div class="empty" style="margin-top:12px"><strong>Sin récords aún</strong>${editing?"Pulsa “Editar demon” para añadir récords.":"Nadie ha registrado progreso en este nivel."}</div>`;
     html += `<div class="tablebox"><table><thead><tr><th>Jugador</th><th>Progreso</th><th>Puntos</th><th>Video</th></tr></thead><tbody>`;
     for (const r of recs){
       const p = Math.max(0,Math.min(100,+r.progress||0));
-      html += `<tr><td>${esc(r.player)}</td><td class="num">${p}% <span class="bar"><i class="${p>=100?"full":""}" style="width:${p}%"></i></span></td>
-        <td class="num">${fmt(recordPoints(pos,p,d.req??100))}</td>
+      html += `<tr><td>${r.player?plink(r.player.trim()):"—"}</td><td class="num">${p}% <span class="bar"><i class="${p>=100?"full":""}" style="width:${p}%"></i></span></td>
+        <td class="num">${fmt(recordPoints(pos,p,req))}</td>
         <td>${r.video?`<a href="${esc(ytLink(r.video))}" target="_blank" rel="noopener">Abrir ↗</a>`:"—"}</td></tr>`;
     }
     return html + `</tbody></table></div>`;
   }
-  function bindDetail(){
+  function bindDetail(){ /* links de jugador se enlazan en render */
     $("#back")?.addEventListener("click", () => { openDemon = null; render(); });
     $("#editThis")?.addEventListener("click", () => openDemonForm(state.demons.find(d=>d.id===openDemon)));
   }
 
+  const plink = name => `<button class="plink" data-player="${esc(name)}">${esc(name)}</button>`;
+  function bindPlayerLinks(){
+    document.querySelectorAll("[data-player]").forEach(b => b.addEventListener("click", e => {
+      e.stopPropagation(); openPlayer = b.dataset.player.toLowerCase(); openDemon = null; render(); window.scrollTo({top:0});
+    }));
+  }
+
   function statsHTML(){
-    const players = new Map();
-    state.demons.forEach((d,i) => {
-      const pos = i+1;
-      // El verificador cuenta como un 100% (si no está ya en los récords)
-      const list = (d.records||[]).slice();
-      const ver = (d.verifier||"").trim();
-      if (ver && !list.some(r => (r.player||"").trim().toLowerCase() === ver.toLowerCase() && +r.progress >= 100))
-        list.push({player: ver, progress: 100});
-      for (const r of list){
-        const key = (r.player||"").trim(); if (!key) continue;
-        const p = players.get(key.toLowerCase()) || {name:key, pts:0, beaten:0, prog:0, hardest:null, hardestPos:Infinity};
-        const pr = +r.progress||0;
-        p.pts += recordPoints(pos, pr, d.req??100);
-        if (pr >= 100){ p.beaten++; if (pos < p.hardestPos){ p.hardestPos = pos; p.hardest = d.name; } } else p.prog++;
-        players.set(key.toLowerCase(), p);
-      }
-    });
-    const rows = [...players.values()].sort((a,b)=>b.pts-a.pts);
-    let html = `<div class="section-head"><h2>Leaderboard</h2><span class="count">${rows.length} jugadores</span></div>`;
-    if (!rows.length) return html + `<div class="empty"><strong>Todavía no hay récords</strong>La tabla se llena sola cuando agregas récords a los demons.</div>`;
-    html += `<div class="tablebox" style="margin-top:0"><table><thead><tr><th>#</th><th>Jugador</th><th>Puntos</th><th>Completados</th><th>En progreso</th><th>Más difícil</th></tr></thead><tbody>`;
-    rows.forEach((p,i) => {
-      html += `<tr><td class="num">${i+1}</td><td>${esc(p.name)}</td><td class="num">${fmt(p.pts)}</td><td class="num">${p.beaten}</td><td class="num">${p.prog}</td><td>${p.hardest?esc(p.hardest)+` <span class="hint">(#${p.hardestPos})</span>`:"—"}</td></tr>`;
-    });
+    const rows = buildPlayers();
+    let html = `<div class="section-head"><h2>Leaderboard</h2><span class="count">${rows.length} jugadores · toca un nombre para ver su perfil</span></div>`;
+    if (!rows.length) return html + `<div class="empty"><strong>Todavía no hay récords</strong>La tabla se llena sola cuando agregas récords o verificadores a los demons.</div>`;
+    html += `<div class="tablebox" style="margin-top:0"><table><thead><tr><th>#</th><th>Jugador</th><th>Puntos</th><th>Completados</th><th>Verificados</th><th>En progreso</th><th>Más difícil</th></tr></thead><tbody>`;
+    for (const p of rows){
+      const done = p.entries.filter(e => e.progress >= 100);
+      const hardest = done.reduce((a,e) => !a || e.pos < a.pos ? e : a, null);
+      html += `<tr><td class="num">${p.rank}</td><td>${plink(p.name)}</td><td class="num">${fmt(p.pts)}</td>
+        <td class="num">${done.length}</td><td class="num">${p.entries.filter(e=>e.verified).length}</td>
+        <td class="num">${p.entries.filter(e=>e.progress<100).length}</td>
+        <td>${hardest?esc(hardest.d.name)+` <span class="hint">(#${hardest.pos})</span>`:"—"}</td></tr>`;
+    }
     return html + `</tbody></table></div>`;
+  }
+
+  function profileHTML(){
+    const rows = buildPlayers();
+    const p = rows.find(x => x.name.toLowerCase() === openPlayer);
+    let html = `<button class="back" id="pback">← Volver al leaderboard</button>`;
+    if (!p) return html + `<div class="empty"><strong>Jugador no encontrado</strong>Puede que lo hayan renombrado o quitado de la lista.</div>`;
+    const by = (fn) => p.entries.filter(fn).sort((a,b)=>a.pos-b.pos);
+    const verified = by(e => e.verified);
+    const done = by(e => e.progress >= 100 && !e.verified);
+    const prog = by(e => e.progress < 100);
+    const hardest = by(e => e.progress >= 100)[0];
+    const chips = (list, withPct) => list.length
+      ? `<div class="lvchips">${list.map(e => `<button class="lvchip" data-demon="${e.d.id}"><span class="lvpos">#${e.pos}</span> ${esc(e.d.name)}${withPct?` <b>${e.progress}%</b>`:""}<span class="lvpts">${fmt(e.pts)}</span></button>`).join("")}</div>`
+      : `<p class="hint" style="margin:0">Ninguno</p>`;
+    const sectionBlock = (title, list, withPct) => {
+      const parts = [["main","Lista principal"],["ext","Lista extendida"],["leg","Legacy"]]
+        .map(([k,label]) => [label, list.filter(e => section(e.pos)===k)]).filter(([,l]) => l.length);
+      return `<div class="panel"><h3>${title} · ${list.length}</h3>${
+        parts.length ? parts.map(([label,l]) => `<div class="sub" style="margin:10px 0 6px">${label} (${l.length})</div>${chips(l,withPct)}`).join("") : `<p class="hint" style="margin:0">Ninguno</p>`
+      }</div>`;
+    };
+    html += `<div class="detail-hero" style="grid-template-columns:minmax(0,1fr)">
+      <div style="min-width:0">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px"><span class="pos${p.rank<=3?" p"+p.rank:""}">#${p.rank}</span><span class="chip">Leaderboard</span></div>
+        <h2>${esc(p.name)}</h2>
+        <div class="facts">
+          <div class="fact"><span>Puntos</span><b>${fmt(p.pts)}</b></div>
+          <div class="fact"><span>Completados</span><b>${verified.length + done.length}</b></div>
+          <div class="fact"><span>Verificados</span><b>${verified.length}</b></div>
+          <div class="fact"><span>En progreso</span><b>${prog.length}</b></div>
+          <div class="fact"><span>Más difícil</span><b>${hardest?esc(hardest.d.name)+` (#${hardest.pos})`:"—"}</b></div>
+        </div>
+      </div></div>
+      <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px">
+        ${sectionBlock("Verificados", verified, false)}
+        ${sectionBlock("Completados", done, false)}
+        ${sectionBlock("En progreso", prog, true)}
+      </div>`;
+    return html;
+  }
+  function bindProfile(){
+    $("#pback")?.addEventListener("click", () => { openPlayer = null; tab = "stats"; render(); });
+    document.querySelectorAll("[data-demon]").forEach(b => b.addEventListener("click", () => {
+      openDemon = b.dataset.demon; openPlayer = null; render(); window.scrollTo({top:0});
+    }));
   }
 
   // ---------- ruleta ----------
@@ -507,7 +605,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
 
   function openDemonForm(d){
     const isNew = !d;
-    d = d || {id:uid(), name:"", creator:"", publisher:"", verifier:"", levelId:"", req:100, video:"", thumb:"", notes:"", records:[]};
+    d = d || {id:uid(), name:"", creator:"", publisher:"", verifier:"", levelId:"", req:null, video:"", thumb:"", notes:"", records:[]};
     const curPos = isNew ? state.demons.length+1 : state.demons.findIndex(x=>x.id===d.id)+1;
     const max = isNew ? state.demons.length+1 : state.demons.length;
     modal(`<h3>${isNew?"Agregar demon":"Editar demon"}</h3>
@@ -519,7 +617,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
         <label class="f">Creador(es)<input id="f_cre" value="${esc(d.creator)}"></label>
         <label class="f">Verificador<input id="f_ver" value="${esc(d.verifier)}"></label>
         <label class="f">ID del nivel<input id="f_lid" value="${esc(d.levelId)}"></label>
-        <label class="f">Requisito mínimo (%)<input id="f_req" type="number" min="1" max="100" value="${esc(d.req??100)}"></label>
+        <label class="f">List% <span class="hint">solo top ${state.mainSize}; vacío = solo 100%</span><input id="f_req" type="number" min="1" max="99" placeholder="Solo 100%" value="${(+d.req>=1 && +d.req<100)?esc(d.req):""}"></label>
         <label class="f">Video de verificación<input id="f_vid" placeholder="Link de YouTube" value="${esc(d.video)}"></label>
       </div>
       <label class="f" style="margin-top:12px">Miniatura personalizada <span class="hint">Opcional. Si la dejas vacía se usa la del video de YouTube.</span>
@@ -551,7 +649,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
           video: r.querySelector('[data-k="video"]').value.trim()
         })).filter(r => r.player);
         const nd = {...d, name:$("#f_name").value.trim(), publisher:$("#f_pub").value.trim(), creator:$("#f_cre").value.trim(),
-          verifier:$("#f_ver").value.trim(), levelId:$("#f_lid").value.trim(), req:Math.max(1,Math.min(100,Number($("#f_req").value)||100)),
+          verifier:$("#f_ver").value.trim(), levelId:$("#f_lid").value.trim(), req:(()=>{ const r=Number($("#f_req").value); return (r>=1 && r<100) ? Math.round(r) : null; })(),
           video:$("#f_vid").value.trim(), thumb:$("#f_thumb").value.trim(), notes:$("#f_notes").value.trim(), records:recs};
         if (!nd.name){ $("#formStatus").textContent = "Escribe el nombre del nivel."; return; }
         const arr = state.demons.filter(x=>x.id!==d.id);
@@ -603,7 +701,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
         try { data = JSON.parse($("#j_txt").value); } catch { $("#jStatus").textContent = "El JSON no es válido."; return; }
         if (!Array.isArray(data.demons)){ $("#jStatus").textContent = "Falta la lista “demons”."; return; }
         if (!imp.dataset.confirm){ imp.dataset.confirm="1"; imp.textContent="¿Seguro? Pulsa otra vez"; return; }
-        data.demons = data.demons.map(d => ({records:[], req:100, ...d, id:d.id||uid()}));
+        data.demons = data.demons.map(d => ({records:[], ...d, id:d.id||uid()}));
         save({...state, ...data}); openDemon=null; close();
       };
     });
@@ -612,7 +710,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
   // ---------- eventos ----------
   $("#tabs").addEventListener("click", e => {
     const t = e.target.closest(".tab"); if (!t) return;
-    tab = t.dataset.tab; openDemon = null; query = ""; render();
+    tab = t.dataset.tab; openDemon = null; openPlayer = null; query = ""; render();
   });
   $("#loginBtn").onclick = openLogin;
   $("#logoutBtn").onclick = logout;
