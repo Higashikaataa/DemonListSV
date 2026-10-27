@@ -47,7 +47,7 @@ main.wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;paddin
 .section-head .count{color:var(--muted);font-size:.9rem}
 .search{margin-left:auto;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);min-width:0;width:220px;max-width:100%}
 .list{display:flex;flex-direction:column;gap:10px}
-.row{display:grid;grid-template-columns:132px minmax(0,1fr) auto;gap:16px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px;cursor:pointer;text-align:left;width:100%;transition:border-color .15s, transform .15s}
+.row{display:grid;grid-template-columns:minmax(150px,30%) minmax(0,1fr) auto;gap:16px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px;cursor:pointer;text-align:left;width:100%;transition:border-color .15s, transform .15s}
 .row:hover{border-color:var(--accent)}
 @media (prefers-reduced-motion:no-preference){.row:hover{transform:translateX(2px)}}
 .thumb{aspect-ratio:16/9;width:100%;max-width:100%;border-radius:7px;overflow:hidden;position:relative;background:linear-gradient(135deg,var(--surface-2),var(--accent-soft));display:grid;place-items:center}
@@ -61,7 +61,18 @@ main.wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;paddin
 .meta{color:var(--muted);font-size:.88rem;overflow-wrap:anywhere}
 .pts{font-family:var(--display);font-weight:600;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 .pts small{display:block;color:var(--muted);font-family:var(--body);font-weight:400;font-size:.75rem}
-@media (max-width:520px){.row{grid-template-columns:88px minmax(0,1fr)}.row .pts{display:none}.thumb .ph{font-size:1.3rem}}
+@media (max-width:520px){.row{grid-template-columns:minmax(0,38%) minmax(0,1fr) auto;gap:10px}.row .name{font-size:1rem}.pts{font-size:.9rem}.edit-tools{flex-direction:column}.thumb .ph{font-size:1.3rem}}
+.row .name{font-size:1.3rem}
+.pts.pct{color:var(--accent)}
+.cl-list{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.cl-item{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 8px;font-size:.88rem;align-items:baseline}
+.cl-date{font-family:var(--display);font-size:.75rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cl-text{min-width:0;overflow-wrap:anywhere}
+.cl-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--muted);margin-right:6px;vertical-align:middle}
+.cl-dot.add{background:var(--ok)}.cl-dot.down{background:var(--warn)}
+.cl-edit{display:grid;grid-template-columns:140px minmax(0,1fr) auto;gap:6px;margin-bottom:6px}
+.cl-edit input{background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:6px 8px;min-width:0;width:100%}
+@media (max-width:520px){.cl-edit{grid-template-columns:1fr auto}.cl-edit .t{grid-column:1/-1;grid-row:2}}
 .edit-tools{display:flex;gap:4px}
 .ibtn{border:1px solid var(--line);background:var(--surface-2);border-radius:7px;padding:4px 8px;cursor:pointer;font-size:.82rem;line-height:1.3}
 .ibtn:hover{border-color:var(--accent);color:var(--accent)}
@@ -159,6 +170,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
       <button class="tab" role="tab" data-tab="main" aria-selected="true">Principal</button>
       <button class="tab" role="tab" data-tab="ext" aria-selected="false">Extendida</button>
       <button class="tab" role="tab" data-tab="leg" aria-selected="false">Legacy</button>
+      <button class="tab" role="tab" data-tab="up" aria-selected="false">Futuros niveles</button>
       <button class="tab" role="tab" data-tab="stats" aria-selected="false">Leaderboard</button>
       <button class="tab" role="tab" data-tab="roul" aria-selected="false">Ruleta</button>
     </nav>
@@ -176,6 +188,11 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
       <p id="aboutText"></p>
     </div>
     <div class="panel">
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px"><h3 style="margin:0;margin-right:auto">Changelog</h3>
+        <button class="ibtn" id="clAll">Ver todo</button><button class="ibtn" id="clEdit" hidden>Editar</button></div>
+      <ul class="cl-list" id="clList"></ul>
+    </div>
+    <div class="panel">
       <h3>Secciones</h3>
       <div class="legend" id="legend"></div>
     </div>
@@ -189,6 +206,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
         <div style="display:flex;flex-direction:column;gap:8px">
           <div class="btn-row">
             <button class="btn primary" id="addDemon">+ Agregar demon</button>
+            <button class="btn" id="addUp">+ Futuro nivel</button>
             <button class="btn" id="editSite">Editar sitio</button>
           </div>
           <button class="btn" id="openJson">Importar / exportar JSON</button>
@@ -208,9 +226,9 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const uid = () => Math.random().toString(36).slice(2, 10);
 
-  let state = { title:"Demonlist", tagline:"", about:"", discordUrl:"", submitUrl:"", mainSize:75, extSize:150, demons:[] };
+  let state = { title:"Demonlist", tagline:"", about:"", discordUrl:"", submitUrl:"", mainSize:75, extSize:150, demons:[], upcoming:[], changelog:[] };
   let loaded = false, editing = false, password = "";
-  let tab = "main", openDemon = null, query = "";
+  let tab = "main", openDemon = null, openUp = null, query = "";
   try { password = sessionStorage.getItem("dl_pw") || ""; } catch {}
 
   // ---------- puntos (fórmula de Pointercrate: #1 = 350, #150 = 18.71) ----------
@@ -310,13 +328,17 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     $("#topLinks").innerHTML =
       (state.discordUrl ? `<a class="btn" href="${esc(state.discordUrl)}" target="_blank" rel="noopener">Discord</a>` : "") +
       (state.submitUrl ? `<a class="btn primary" href="${esc(state.submitUrl)}" target="_blank" rel="noopener">Subir récord</a>` : "");
-    document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === tab && !openDemon && !openPlayer)));
+    document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === tab && !openDemon && !openPlayer && !openUp)));
+    renderChangelog();
+    $("#clEdit").hidden = !editing;
     $("#loginBox").hidden = editing;
     $("#editorTools").hidden = !editing;
     if (!loaded) return;
     const v = $("#view");
     if (openDemon){ v.innerHTML = detailHTML(); bindDetail(); bindPlayerLinks(); return; }
     if (openPlayer){ v.innerHTML = profileHTML(); bindProfile(); return; }
+    if (openUp){ v.innerHTML = upDetailHTML(); bindUpDetail(); return; }
+    if (tab === "up"){ v.innerHTML = upListHTML(); bindUpList(); return; }
     if (tab === "stats"){ v.innerHTML = statsHTML(); bindPlayerLinks(); return; }
     if (tab === "roul"){ v.innerHTML = roulHTML(); bindRoul(); return; }
     v.innerHTML = listHTML();
@@ -369,7 +391,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
       const j = b.dataset.act === "up" ? i-1 : i+1;
       if (j<0 || j>=state.demons.length) return;
       const arr = state.demons.slice(); [arr[i],arr[j]] = [arr[j],arr[i]];
-      save({...state, demons:arr});
+      save({...state, demons:arr}, {log:true});
     }));
   }
 
@@ -543,10 +565,213 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     $("#r_reset")?.addEventListener("click", () => { roul = null; render(); });
   }
 
+
+  // ---------- changelog ----------
+  const SEC_NAME = {main:"Lista principal", ext:"Lista extendida", leg:"Legacy"};
+  const SEC_RANK = {main:0, ext:1, leg:2};
+  function today(){
+    const d = new Date();
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  }
+  function fmtDate(iso){
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||"");
+    if (!m) return esc(iso||"");
+    const mes = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"][+m[2]-1] || m[2];
+    return `${+m[3]} ${mes} ${m[1]}`;
+  }
+  // Compara la lista antes y después de un cambio y anota altas y bajadas de sección.
+  function diffChanges(oldArr, newArr, cfg){
+    const secOf = pos => pos <= cfg.mainSize ? "main" : pos <= cfg.extSize ? "ext" : "leg";
+    const oldPos = new Map(oldArr.map((d,i) => [d.id, i+1]));
+    const out = [], date = today();
+    newArr.forEach((d,i) => {
+      const pos = i+1;
+      if (!oldPos.has(d.id)){
+        out.push({id:uid(), date, type:"add", text:`${d.name} fue agregado en el puesto #${pos} (${SEC_NAME[secOf(pos)]})`});
+        return;
+      }
+      const from = secOf(oldPos.get(d.id)), to = secOf(pos);
+      if (SEC_RANK[to] > SEC_RANK[from])
+        out.push({id:uid(), date, type:"down", text:`${d.name} bajó de ${SEC_NAME[from]} a ${SEC_NAME[to]} (#${pos})`});
+    });
+    return out;
+  }
+  function sortedLog(){
+    return (state.changelog||[]).map((e,i)=>({e,i})).sort((a,b) => (b.e.date||"").localeCompare(a.e.date||"") || a.i-b.i).map(x=>x.e);
+  }
+  function clItem(e){
+    return `<li class="cl-item"><span class="cl-date">${fmtDate(e.date)}</span><span class="cl-text"><span class="cl-dot ${e.type==="add"?"add":e.type==="down"?"down":""}"></span>${esc(e.text)}</span></li>`;
+  }
+  function renderChangelog(){
+    const list = sortedLog();
+    $("#clList").innerHTML = list.length ? list.slice(0,8).map(clItem).join("")
+      : `<li class="hint">Aquí aparecerán los niveles agregados y los que bajen de sección.</li>`;
+    $("#clAll").hidden = list.length <= 8;
+  }
+  function openChangelogAll(){
+    modal(`<h3>Changelog</h3><ul class="cl-list">${sortedLog().map(clItem).join("") || `<li class="hint">Sin cambios todavía.</li>`}</ul>
+      <div class="foot"><button class="btn" id="cancel">Cerrar</button></div>`, close => { $("#cancel").onclick = close; });
+  }
+  function clRow(e={id:uid(), date:today(), type:"note", text:""}){
+    return `<div class="cl-edit" data-id="${esc(e.id)}" data-type="${esc(e.type||"note")}">
+      <input type="date" value="${esc(e.date)}" data-k="date" aria-label="Fecha">
+      <input class="t" value="${esc(e.text)}" data-k="text" placeholder="Qué cambió" aria-label="Texto">
+      <button type="button" class="ibtn" data-del aria-label="Quitar entrada">✕</button></div>`;
+  }
+  function openChangelogEditor(){
+    modal(`<h3>Editar changelog</h3>
+      <p class="hint" style="margin-top:0">Las entradas se crean solas al agregar niveles o cuando uno baja de sección. Aquí puedes corregirlas, borrarlas o escribir otras.</p>
+      <form id="clf"><div id="clRows">${sortedLog().map(clRow).join("")}</div>
+      <button type="button" class="btn" id="clAdd">+ Añadir entrada</button>
+      <div class="foot"><button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit">Guardar</button></div></form>`, close => {
+      $("#cancel").onclick = close;
+      const bindDel = () => document.querySelectorAll("#clRows [data-del]").forEach(b => b.onclick = () => b.parentElement.remove());
+      $("#clAdd").onclick = () => { $("#clRows").insertAdjacentHTML("afterbegin", clRow()); bindDel(); $("#clRows input.t").focus(); };
+      bindDel();
+      $("#clf").addEventListener("submit", e => {
+        e.preventDefault();
+        const log = [...document.querySelectorAll("#clRows .cl-edit")].map(r => ({
+          id: r.dataset.id, type: r.dataset.type,
+          date: r.querySelector('[data-k="date"]').value || today(),
+          text: r.querySelector('[data-k="text"]').value.trim()
+        })).filter(x => x.text);
+        save({...state, changelog:log}); close();
+      });
+    });
+  }
+
+  // ---------- futuros niveles ----------
+  const clampPct = v => Math.max(0, Math.min(100, Math.round(Number(v)||0)));
+  function upListHTML(){
+    const all = (state.upcoming||[]).map((d,i) => ({d, pos:i+1}));
+    const q = query.trim().toLowerCase();
+    const items = q ? all.filter(x => [x.d.name,x.d.creator,x.d.publisher,x.d.player].join(" ").toLowerCase().includes(q)) : all;
+    let html = `<div class="section-head"><h2>Futuros niveles</h2><span class="count">${all.length} ${all.length===1?"nivel":"niveles"} en progreso</span>
+      <input class="search" id="search" type="search" placeholder="Buscar nivel o jugador" value="${esc(query)}" aria-label="Buscar"></div>`;
+    if (!all.length) return html + `<div class="empty"><strong>Todavía no hay futuros niveles</strong>${editing ? "Pulsa “+ Futuro nivel” en el panel del editor para agregar uno." : "Aquí aparecerán los niveles que alguien está por completar por primera vez."}</div>`;
+    if (!items.length) return html + `<div class="empty"><strong>Sin resultados</strong>Prueba con otro nombre.</div>`;
+    html += `<div class="list">`;
+    for (const {d,pos} of items){
+      const pct = clampPct(d.progress);
+      const tools = editing ? `<div class="edit-tools" data-stop>
+          <button class="ibtn" data-uact="up" data-id="${d.id}" ${pos===1?"disabled":""} aria-label="Subir">▲</button>
+          <button class="ibtn" data-uact="down" data-id="${d.id}" ${pos===all.length?"disabled":""} aria-label="Bajar">▼</button>
+          <button class="ibtn" data-uact="edit" data-id="${d.id}">Editar</button></div>`
+        : `<div class="pts pct">${pct}%<small>progreso</small></div>`;
+      html += `<div class="row" role="button" tabindex="0" data-uopen="${d.id}">
+        ${thumbHTML(d,pos)}
+        <div class="row-main">
+          <div class="row-title"><span class="name">${esc(d.name)}</span></div>
+          <div class="meta">${d.player ? "progreso de "+esc(d.player)+" · " : ""}publicado por ${esc(d.publisher || d.creator || "—")}</div>
+          <div style="margin-top:6px"><span class="bar" style="margin-left:0;width:140px;max-width:100%"><i style="width:${pct}%"></i></span></div>
+        </div>
+        ${tools}
+      </div>`;
+    }
+    return html + `</div>`;
+  }
+  function bindUpList(){
+    const s = $("#search");
+    if (s) s.addEventListener("input", e => { query = e.target.value; const p = e.target.selectionStart; render(); const n=$("#search"); n.focus(); n.setSelectionRange(p,p); });
+    document.querySelectorAll("[data-uopen]").forEach(r => {
+      const go = e => { if (e.target.closest("[data-stop]")) return; openUp = r.dataset.uopen; render(); window.scrollTo({top:0}); };
+      r.addEventListener("click", go);
+      r.addEventListener("keydown", e => { if (e.key==="Enter"||e.key===" "){ e.preventDefault(); go(e);} });
+    });
+    document.querySelectorAll("[data-uact]").forEach(b => b.addEventListener("click", e => {
+      e.stopPropagation();
+      const arr = (state.upcoming||[]).slice();
+      const i = arr.findIndex(d => d.id === b.dataset.id);
+      if (b.dataset.uact === "edit") return openUpForm(arr[i]);
+      const j = b.dataset.uact === "up" ? i-1 : i+1;
+      if (j<0 || j>=arr.length) return;
+      [arr[i],arr[j]] = [arr[j],arr[i]];
+      save({...state, upcoming:arr});
+    }));
+  }
+  function upDetailHTML(){
+    const d = (state.upcoming||[]).find(x => x.id === openUp);
+    if (!d){ openUp = null; return upListHTML(); }
+    const pct = clampPct(d.progress), ts = thumbSrc(d), video = ytLink(d.video);
+    return `<button class="back" id="uback">← Volver a futuros niveles</button>
+    <div class="detail-hero">
+      ${ts ? `<div class="thumb"><img src="${esc(ts)}" alt="Miniatura de ${esc(d.name)}"></div>` : `<div class="thumb"><span class="ph">?</span></div>`}
+      <div style="min-width:0">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px"><span class="chip ext">Futuro nivel</span></div>
+        <h2>${esc(d.name)}</h2>
+        <div class="facts">
+          <div class="fact"><span>Publicador</span><b>${esc(d.publisher||"—")}</b></div>
+          <div class="fact"><span>Creador(es)</span><b>${esc(d.creator||"—")}</b></div>
+          <div class="fact"><span>ID del nivel</span><b>${esc(d.levelId||"—")}</b></div>
+          <div class="fact"><span>Jugador</span><b>${esc(d.player||"—")}</b></div>
+          <div class="fact"><span>Progreso</span><b>${pct}%</b> <span class="bar"><i class="${pct>=100?"full":""}" style="width:${pct}%"></i></span></div>
+        </div>
+        <div class="btn-row" style="margin-top:14px">
+          ${video ? `<a class="btn" href="${esc(video)}" target="_blank" rel="noopener">Ver progreso ↗</a>` : ""}
+          ${editing ? `<button class="btn primary" id="editUp">Editar nivel</button>` : ""}
+        </div>
+      </div>
+    </div>
+    ${d.notes ? `<div class="panel" style="margin-top:16px"><h3>Notas</h3><p>${esc(d.notes)}</p></div>` : ""}`;
+  }
+  function bindUpDetail(){
+    $("#uback")?.addEventListener("click", () => { openUp = null; tab = "up"; render(); });
+    $("#editUp")?.addEventListener("click", () => openUpForm((state.upcoming||[]).find(x => x.id === openUp)));
+  }
+  function openUpForm(d){
+    const isNew = !d, list = state.upcoming||[];
+    d = d || {id:uid(), name:"", publisher:"", creator:"", levelId:"", player:"", progress:0, video:"", thumb:"", notes:""};
+    const curPos = isNew ? list.length+1 : list.findIndex(x=>x.id===d.id)+1;
+    const max = isNew ? list.length+1 : list.length;
+    modal(`<h3>${isNew?"Agregar futuro nivel":"Editar futuro nivel"}</h3>
+      <form id="uf">
+      <div class="grid2">
+        <label class="f">Nombre del nivel<input id="u_name" required value="${esc(d.name)}"></label>
+        <label class="f">Orden (1–${max})<input id="u_pos" type="number" min="1" max="${max}" value="${curPos}"></label>
+        <label class="f">Publicador<input id="u_pub" value="${esc(d.publisher)}"></label>
+        <label class="f">Creador(es)<input id="u_cre" value="${esc(d.creator)}"></label>
+        <label class="f">Jugador que lo está jugando<input id="u_pl" value="${esc(d.player)}"></label>
+        <label class="f">Progreso (%)<input id="u_pr" type="number" min="0" max="100" value="${clampPct(d.progress)}"></label>
+        <label class="f">ID del nivel<input id="u_lid" value="${esc(d.levelId)}"></label>
+        <label class="f">Video del progreso<input id="u_vid" placeholder="Link de YouTube" value="${esc(d.video)}"></label>
+      </div>
+      <label class="f" style="margin-top:12px">Miniatura personalizada <span class="hint">Opcional. Si la dejas vacía se usa la del video de YouTube.</span>
+        <input id="u_thumb" value="${esc(d.thumb)}" placeholder="URL de una imagen"></label>
+      <label class="f" style="margin-top:12px">Notas<textarea id="u_notes" rows="2">${esc(d.notes)}</textarea></label>
+      <div class="foot">
+        <span class="status" id="uStatus"></span>
+        ${isNew ? "" : `<button type="button" class="btn danger" id="uDel">Eliminar</button>`}
+        <button type="button" class="btn" id="cancel">Cancelar</button>
+        <button type="submit" class="btn primary">${isNew?"Agregar":"Guardar"}</button>
+      </div></form>`, close => {
+      $("#cancel").onclick = close;
+      const del = $("#uDel");
+      if (del) del.onclick = () => {
+        if (del.dataset.confirm){ if (openUp===d.id) openUp=null; save({...state, upcoming:list.filter(x=>x.id!==d.id)}); close(); }
+        else { del.dataset.confirm = "1"; del.textContent = "¿Seguro? Pulsa otra vez"; }
+      };
+      $("#uf").addEventListener("submit", e => {
+        e.preventDefault();
+        const nd = {...d, name:$("#u_name").value.trim(), publisher:$("#u_pub").value.trim(), creator:$("#u_cre").value.trim(),
+          player:$("#u_pl").value.trim(), progress:clampPct($("#u_pr").value), levelId:$("#u_lid").value.trim(),
+          video:$("#u_vid").value.trim(), thumb:$("#u_thumb").value.trim(), notes:$("#u_notes").value.trim()};
+        if (!nd.name){ $("#uStatus").textContent = "Escribe el nombre del nivel."; return; }
+        const arr = list.filter(x=>x.id!==d.id);
+        const p = Math.max(1, Math.min(arr.length+1, Number($("#u_pos").value)||arr.length+1));
+        arr.splice(p-1, 0, nd);
+        save({...state, upcoming:arr}); close();
+      });
+    });
+  }
+
   // ---------- guardar ----------
   let saving = Promise.resolve();
   function setStatus(msg, cls=""){ const s=$("#saveStatus"); s.textContent=msg; s.className="status "+cls; }
-  function save(next){
+  function save(next, opts={}){
+    if (opts.log){
+      const entries = diffChanges(state.demons||[], next.demons||[], next);
+      if (entries.length) next = {...next, changelog:[...entries, ...(next.changelog||[])]};
+    }
     state = next; render();
     setStatus("Guardando…");
     const body = JSON.stringify(state);
@@ -638,7 +863,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
       bindRecDel();
       const del = $("#delBtn");
       if (del) del.onclick = () => {
-        if (del.dataset.confirm){ if (openDemon===d.id) openDemon=null; save({...state, demons:state.demons.filter(x=>x.id!==d.id)}); close(); }
+        if (del.dataset.confirm){ if (openDemon===d.id) openDemon=null; save({...state, demons:state.demons.filter(x=>x.id!==d.id)}, {log:true}); close(); }
         else { del.dataset.confirm = "1"; del.textContent = "¿Seguro? Pulsa otra vez"; }
       };
       $("#df").addEventListener("submit", e => {
@@ -655,7 +880,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
         const arr = state.demons.filter(x=>x.id!==d.id);
         const p = Math.max(1, Math.min(arr.length+1, Number($("#f_pos").value)||arr.length+1));
         arr.splice(p-1, 0, nd);
-        save({...state, demons:arr}); close();
+        save({...state, demons:arr}, {log:true}); close();
       });
     });
   }
@@ -702,6 +927,8 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
         if (!Array.isArray(data.demons)){ $("#jStatus").textContent = "Falta la lista “demons”."; return; }
         if (!imp.dataset.confirm){ imp.dataset.confirm="1"; imp.textContent="¿Seguro? Pulsa otra vez"; return; }
         data.demons = data.demons.map(d => ({records:[], ...d, id:d.id||uid()}));
+        if (data.upcoming && !Array.isArray(data.upcoming)) delete data.upcoming;
+        if (data.changelog && !Array.isArray(data.changelog)) delete data.changelog;
         save({...state, ...data}); openDemon=null; close();
       };
     });
@@ -710,13 +937,16 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
   // ---------- eventos ----------
   $("#tabs").addEventListener("click", e => {
     const t = e.target.closest(".tab"); if (!t) return;
-    tab = t.dataset.tab; openDemon = null; openPlayer = null; query = ""; render();
+    tab = t.dataset.tab; openDemon = null; openPlayer = null; openUp = null; query = ""; render();
   });
   $("#loginBtn").onclick = openLogin;
   $("#logoutBtn").onclick = logout;
   $("#addDemon").onclick = () => openDemonForm(null);
   $("#editSite").onclick = openSiteForm;
   $("#openJson").onclick = openJson;
+  $("#addUp").onclick = () => { tab = "up"; openDemon = openPlayer = openUp = null; render(); openUpForm(null); };
+  $("#clAll").onclick = openChangelogAll;
+  $("#clEdit").onclick = openChangelogEditor;
 
   async function boot(){
     if (password){
@@ -728,6 +958,8 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
       if (!r.ok) throw new Error(d.error || "Error " + r.status);
       state = {...state, ...d};
       state.demons = (state.demons||[]).map(x => ({records:[], ...x}));
+      state.upcoming = Array.isArray(state.upcoming) ? state.upcoming : [];
+      state.changelog = Array.isArray(state.changelog) ? state.changelog : [];
       loaded = true; render();
     } catch (err) {
       loaded = true; render();
