@@ -64,6 +64,15 @@ main.wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;paddin
 @media (max-width:520px){.row{grid-template-columns:minmax(0,38%) minmax(0,1fr) auto;gap:10px}.row .name{font-size:1rem}.pts{font-size:.9rem}.edit-tools{flex-direction:column}.thumb .ph{font-size:1.3rem}}
 .row .name{font-size:1.3rem}
 .pts.pct{color:var(--accent)}
+.lvrows{display:flex;flex-direction:column;gap:8px}
+.lvrow{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;min-height:54px;padding:10px 18px;border:1px solid var(--line);border-radius:9px;cursor:pointer;text-align:left;
+  background:var(--surface-2);color:var(--fg);font-family:var(--display);font-weight:700;font-size:1.05rem;transition:border-color .15s, transform .15s}
+.lvrow.has-img{background:linear-gradient(90deg,rgba(8,10,16,.82),rgba(8,10,16,.55) 55%,rgba(8,10,16,.8)),var(--img) center/cover no-repeat;color:#ffd166;border-color:rgba(255,255,255,.08);text-shadow:0 1px 3px rgba(0,0,0,.7)}
+.lvrow:hover{border-color:var(--accent)}
+@media (prefers-reduced-motion:no-preference){.lvrow:hover{transform:translateX(2px)}}
+.lvrow .lvname{min-width:0;overflow-wrap:anywhere}
+.lvrow .lvpos,.lvrow .lvpts{font-variant-numeric:tabular-nums;white-space:nowrap;color:inherit;font-size:inherit;margin:0}
+@media (max-width:520px){.lvrow{grid-template-columns:52px minmax(0,1fr) auto;padding:10px 12px;font-size:.92rem}}
 .cl-list{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
 .cl-item{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 8px;font-size:.88rem;align-items:baseline}
 .cl-date{font-family:var(--display);font-size:.75rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -287,6 +296,11 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
         p.pts += pts; p.entries.push({d,pos,progress:pr,pts,verified:false,video:r.video});
       }
     });
+    // Progresos en futuros niveles (no dan puntos)
+    (state.upcoming||[]).forEach((u,i) => {
+      const name = (u.player||"").trim(); if (!name) return;
+      get(name).entries.push({d:u, pos:null, upPos:i+1, progress:clampPct(u.progress), pts:0, verified:false, upcoming:true, video:u.video});
+    });
     const rows = [...players.values()].sort((a,b)=>b.pts-a.pts || a.name.localeCompare(b.name));
     rows.forEach((p,i) => p.rank = i+1);
     return rows;
@@ -319,7 +333,56 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
   }
 
   // ---------- render ----------
+  // ---------- apariencia (colores y fondo) ----------
+  function hexLum(h){
+    const m = /^#?([0-9a-f]{6})$/i.exec(h||""); if (!m) return null;
+    const n = parseInt(m[1],16), c = [n>>16&255, n>>8&255, n&255].map(v => { v/=255; return v<=.03928 ? v/12.92 : Math.pow((v+.055)/1.055,2.4); });
+    return .2126*c[0] + .7152*c[1] + .0722*c[2];
+  }
+  const FONTS = ["Chakra Petch","Nunito Sans","Lexend","Orbitron","Russo One","Audiowide","Bebas Neue","Exo 2","Rajdhani","Oswald","Montserrat","Poppins","Roboto","Press Start 2P"];
+  const fontStack = f => `"${f}", system-ui, sans-serif`;
+  let loadedFonts = "";
+  function loadFonts(list){
+    const fams = [...new Set(list.filter(f => FONTS.includes(f) && f !== "Chakra Petch" && f !== "Nunito Sans"))];
+    const key = fams.join("|");
+    if (key === loadedFonts) return;
+    loadedFonts = key;
+    document.getElementById("customFonts")?.remove();
+    if (!fams.length) return;
+    const l = document.createElement("link");
+    l.id = "customFonts"; l.rel = "stylesheet";
+    l.href = "https://fonts.googleapis.com/css2?" + fams.map(f => "family=" + f.replace(/ /g,"+") + ":wght@400;600;700").join("&") + "&display=swap";
+    document.head.appendChild(l);
+  }
+  function applyTheme(){
+    const t = state.theme || {}, root = document.documentElement;
+    loadFonts([t.fontTitle, t.fontBody].filter(Boolean));
+    if (FONTS.includes(t.fontTitle)) root.style.setProperty("--display", fontStack(t.fontTitle)); else root.style.removeProperty("--display");
+    if (FONTS.includes(t.fontBody)) root.style.setProperty("--body", fontStack(t.fontBody)); else root.style.removeProperty("--body");
+    if (hexLum(t.text) !== null){
+      root.style.setProperty("--fg", t.text);
+      root.style.setProperty("--muted", `color-mix(in srgb, ${t.text} 62%, var(--bg))`);
+    } else ["--fg","--muted"].forEach(k => root.style.removeProperty(k));
+    if (t.mode === "light" || t.mode === "dark") root.setAttribute("data-theme", t.mode); else root.removeAttribute("data-theme");
+    const lum = hexLum(t.accent);
+    if (lum !== null){
+      root.style.setProperty("--accent", t.accent);
+      root.style.setProperty("--accent-ink", lum > .4 ? "#111111" : "#ffffff");
+      root.style.setProperty("--accent-soft", `color-mix(in srgb, ${t.accent} 18%, var(--surface))`);
+    } else ["--accent","--accent-ink","--accent-soft"].forEach(k => root.style.removeProperty(k));
+    if (t.bg){
+      const dim = Math.max(0, Math.min(95, Number(t.bgDim ?? 80)));
+      document.body.style.backgroundImage = `linear-gradient(color-mix(in srgb, var(--bg) ${dim}%, transparent), color-mix(in srgb, var(--bg) ${dim}%, transparent)), url("${String(t.bg).replace(/["\\]/g,"")}")`;
+      document.body.style.backgroundSize = "cover";
+      document.body.style.backgroundPosition = "center";
+      document.body.style.backgroundAttachment = "fixed";
+    } else {
+      ["backgroundImage","backgroundSize","backgroundPosition","backgroundAttachment"].forEach(k => document.body.style[k] = "");
+    }
+  }
+
   function render(){
+    applyTheme();
     document.title = state.title || "Demonlist";
     $("#siteTitle").textContent = state.title || "Demonlist";
     $("#siteTag").textContent = state.tagline || "";
@@ -453,11 +516,11 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     if (!rows.length) return html + `<div class="empty"><strong>Todavía no hay récords</strong>La tabla se llena sola cuando agregas récords o verificadores a los demons.</div>`;
     html += `<div class="tablebox" style="margin-top:0"><table><thead><tr><th>#</th><th>Jugador</th><th>Puntos</th><th>Completados</th><th>Verificados</th><th>En progreso</th><th>Más difícil</th></tr></thead><tbody>`;
     for (const p of rows){
-      const done = p.entries.filter(e => e.progress >= 100);
+      const done = p.entries.filter(e => e.progress >= 100 && !e.upcoming);
       const hardest = done.reduce((a,e) => !a || e.pos < a.pos ? e : a, null);
       html += `<tr><td class="num">${p.rank}</td><td>${plink(p.name)}</td><td class="num">${fmt(p.pts)}</td>
         <td class="num">${done.length}</td><td class="num">${p.entries.filter(e=>e.verified).length}</td>
-        <td class="num">${p.entries.filter(e=>e.progress<100).length}</td>
+        <td class="num">${p.entries.filter(e=>e.progress<100 || e.upcoming).length}</td>
         <td>${hardest?esc(hardest.d.name)+` <span class="hint">(#${hardest.pos})</span>`:"—"}</td></tr>`;
     }
     return html + `</tbody></table></div>`;
@@ -468,18 +531,30 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     const p = rows.find(x => x.name.toLowerCase() === openPlayer);
     let html = `<button class="back" id="pback">← Volver al leaderboard</button>`;
     if (!p) return html + `<div class="empty"><strong>Jugador no encontrado</strong>Puede que lo hayan renombrado o quitado de la lista.</div>`;
-    const by = (fn) => p.entries.filter(fn).sort((a,b)=>a.pos-b.pos);
+    const listed = p.entries.filter(e => !e.upcoming);
+    const by = (fn) => listed.filter(fn).sort((a,b)=>a.pos-b.pos);
     const verified = by(e => e.verified);
     const done = by(e => e.progress >= 100 && !e.verified);
     const prog = by(e => e.progress < 100);
+    const upProg = p.entries.filter(e => e.upcoming).sort((a,b)=>a.upPos-b.upPos);
     const hardest = by(e => e.progress >= 100)[0];
+    const lvRow = (e, withPct) => {
+      const src = thumbSrc(e.d);
+      const bg = src ? ` style="--img:url('${esc(src).replace(/'/g,"%27")}')"` : "";
+      const attr = e.upcoming ? `data-upopen="${e.d.id}"` : `data-demon="${e.d.id}"`;
+      const label = e.upcoming ? "Futuro" : "#"+e.pos;
+      const right = e.upcoming ? `${e.progress}%` : (withPct ? `${e.progress}% · ` : "") + `+${fmt(e.pts)}`;
+      return `<button class="lvrow${src?" has-img":""}" ${attr}${bg}><span class="lvpos">${label}</span><span class="lvname">${esc(e.d.name)}</span><span class="lvpts">${right}</span></button>`;
+    };
     const chips = (list, withPct) => list.length
-      ? `<div class="lvchips">${list.map(e => `<button class="lvchip" data-demon="${e.d.id}"><span class="lvpos">#${e.pos}</span> ${esc(e.d.name)}${withPct?` <b>${e.progress}%</b>`:""}<span class="lvpts">${fmt(e.pts)}</span></button>`).join("")}</div>`
+      ? `<div class="lvrows">${list.map(e => lvRow(e, withPct)).join("")}</div>`
       : `<p class="hint" style="margin:0">Ninguno</p>`;
-    const sectionBlock = (title, list, withPct) => {
+    const sectionBlock = (title, list, withPct, extra=[]) => {
       const parts = [["main","Lista principal"],["ext","Lista extendida"],["leg","Legacy"]]
         .map(([k,label]) => [label, list.filter(e => section(e.pos)===k)]).filter(([,l]) => l.length);
-      return `<div class="panel"><h3>${title} · ${list.length}</h3>${
+      if (extra.length) parts.push(["Futuros niveles", extra]);
+      const total = list.length + extra.length;
+      return `<div class="panel"><h3>${title} · ${total}</h3>${
         parts.length ? parts.map(([label,l]) => `<div class="sub" style="margin:10px 0 6px">${label} (${l.length})</div>${chips(l,withPct)}`).join("") : `<p class="hint" style="margin:0">Ninguno</p>`
       }</div>`;
     };
@@ -491,14 +566,14 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
           <div class="fact"><span>Puntos</span><b>${fmt(p.pts)}</b></div>
           <div class="fact"><span>Completados</span><b>${verified.length + done.length}</b></div>
           <div class="fact"><span>Verificados</span><b>${verified.length}</b></div>
-          <div class="fact"><span>En progreso</span><b>${prog.length}</b></div>
+          <div class="fact"><span>En progreso</span><b>${prog.length + upProg.length}</b></div>
           <div class="fact"><span>Más difícil</span><b>${hardest?esc(hardest.d.name)+` (#${hardest.pos})`:"—"}</b></div>
         </div>
       </div></div>
       <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px">
         ${sectionBlock("Verificados", verified, false)}
         ${sectionBlock("Completados", done, false)}
-        ${sectionBlock("En progreso", prog, true)}
+        ${sectionBlock("En progreso", prog, true, upProg)}
       </div>`;
     return html;
   }
@@ -506,6 +581,9 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     $("#pback")?.addEventListener("click", () => { openPlayer = null; tab = "stats"; render(); });
     document.querySelectorAll("[data-demon]").forEach(b => b.addEventListener("click", () => {
       openDemon = b.dataset.demon; openPlayer = null; render(); window.scrollTo({top:0});
+    }));
+    document.querySelectorAll("[data-upopen]").forEach(b => b.addEventListener("click", () => {
+      openUp = b.dataset.upopen; openPlayer = null; tab = "up"; render(); window.scrollTo({top:0});
     }));
   }
 
@@ -886,6 +964,8 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
   }
 
   function openSiteForm(){
+    const th = state.theme || {};
+    loadedFonts = null;
     modal(`<h3>Editar sitio</h3><form id="sf">
       <label class="f">Título<input id="s_title" value="${esc(state.title)}"></label>
       <label class="f" style="margin-top:12px">Subtítulo<input id="s_tag" value="${esc(state.tagline)}"></label>
@@ -896,14 +976,55 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
         <label class="f">Tamaño lista principal<input id="s_main" type="number" min="1" value="${state.mainSize}"></label>
         <label class="f">Último puesto de la extendida<input id="s_ext" type="number" min="1" value="${state.extSize}"></label>
       </div>
+      <div class="sub">Apariencia</div>
+      <div class="grid2">
+        <label class="f">Modo
+          <select id="s_mode">
+            <option value="auto" ${!th.mode||th.mode==="auto"?"selected":""}>Automático (según el dispositivo)</option>
+            <option value="dark" ${th.mode==="dark"?"selected":""}>Oscuro</option>
+            <option value="light" ${th.mode==="light"?"selected":""}>Claro</option>
+          </select></label>
+        <label class="f">Color principal <span class="hint">botones, puestos y detalles</span>
+          <span style="display:flex;gap:8px;align-items:center">
+            <input id="s_acc" type="color" value="${esc(th.accent||"#c4253a")}" style="width:56px;height:38px;padding:2px">
+            <label class="hint" style="display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox" id="s_accDef" ${th.accent?"":"checked"}> Usar el de siempre</label>
+          </span></label>
+      </div>
+      <div class="grid2" style="margin-top:12px">
+        <label class="f">Color de las letras
+          <span style="display:flex;gap:8px;align-items:center">
+            <input id="s_txt" type="color" value="${esc(th.text||"#e8ecf3")}" style="width:56px;height:38px;padding:2px">
+            <label class="hint" style="display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox" id="s_txtDef" ${th.text?"":"checked"}> Usar el de siempre</label>
+          </span></label>
+        <span></span>
+        <label class="f">Letra de títulos
+          <select id="s_ft">${FONTS.map(f => `<option value="${f}" ${(th.fontTitle||"Chakra Petch")===f?"selected":""} style="font-family:'${f}'">${f}</option>`).join("")}</select></label>
+        <label class="f">Letra del texto
+          <select id="s_fb">${FONTS.map(f => `<option value="${f}" ${(th.fontBody||"Nunito Sans")===f?"selected":""}>${f}</option>`).join("")}</select></label>
+      </div>
+      <p class="hint" id="s_fprev" style="margin:8px 0 0">Vista previa: <span id="s_fpt" style="font-weight:700;font-size:1.1rem">Bloodbath #1</span> · <span id="s_fpb">publicado por Riot</span></p>
+      <label class="f" style="margin-top:12px">Imagen de fondo <span class="hint">link directo a una imagen (.jpg, .png, .webp). Vacío = sin imagen.</span>
+        <input id="s_bg" value="${esc(th.bg||"")}" placeholder="https://.../fondo.jpg"></label>
+      <label class="f" style="margin-top:12px">Oscurecer fondo: <span id="s_dimv">${th.bgDim ?? 80}%</span> <span class="hint">más alto = el texto se lee mejor</span>
+        <input id="s_dim" type="range" min="0" max="95" step="5" value="${th.bgDim ?? 80}"></label>
       <div class="foot"><button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit">Guardar</button></div></form>`, close => {
       $("#cancel").onclick = close;
+      $("#s_dim").addEventListener("input", e => $("#s_dimv").textContent = e.target.value + "%");
+      $("#s_acc").addEventListener("input", () => $("#s_accDef").checked = false);
+      $("#s_txt").addEventListener("input", () => $("#s_txtDef").checked = false);
+      const prev = () => { loadFonts([$("#s_ft").value, $("#s_fb").value]); $("#s_fpt").style.fontFamily = fontStack($("#s_ft").value); $("#s_fpb").style.fontFamily = fontStack($("#s_fb").value); };
+      $("#s_ft").addEventListener("change", prev); $("#s_fb").addEventListener("change", prev); prev();
       $("#sf").addEventListener("submit", e => {
         e.preventDefault();
+        const theme = { mode: $("#s_mode").value, accent: $("#s_accDef").checked ? "" : $("#s_acc").value,
+          bg: $("#s_bg").value.trim(), bgDim: Number($("#s_dim").value),
+          text: $("#s_txtDef").checked ? "" : $("#s_txt").value,
+          fontTitle: $("#s_ft").value === "Chakra Petch" ? "" : $("#s_ft").value,
+          fontBody: $("#s_fb").value === "Nunito Sans" ? "" : $("#s_fb").value };
         const m = Math.max(1, Number($("#s_main").value)||75);
         const x = Math.max(m, Number($("#s_ext").value)||150);
         save({...state, title:$("#s_title").value.trim()||"Demonlist", tagline:$("#s_tag").value.trim(), about:$("#s_about").value.trim(),
-          discordUrl:$("#s_dc").value.trim(), submitUrl:$("#s_sub").value.trim(), mainSize:m, extSize:x});
+          discordUrl:$("#s_dc").value.trim(), submitUrl:$("#s_sub").value.trim(), mainSize:m, extSize:x, theme});
         close();
       });
     });
