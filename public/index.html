@@ -15,6 +15,7 @@
   --display:"Chakra Petch", "Arial Narrow", system-ui, sans-serif;
   --body:"Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --r:10px;
+  --title:var(--fg); --header:var(--surface); --rowtext:var(--gold);
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0e1117; --surface:#161a22; --surface-2:#1c212b; --line:#2a313d;
@@ -26,13 +27,15 @@
   --gold:#e6b94a; --silver:#b4bdca; --bronze:#d18a52; --ok:#4fc58a; --warn:#f0a845; color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--header)}
 .wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-header.top{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+header.top{background:var(--header);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
 .top .wrap{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-block:12px}
 .brand{display:flex;flex-direction:column;min-width:0;margin-right:auto}
 .brand h1{font-family:var(--display);font-size:1.5rem;font-weight:700;margin:0;letter-spacing:.02em;line-height:1.1;text-wrap:balance}
 .brand h1 span{color:var(--accent)}
+.brand h1,.section-head h2,.name,.detail-hero h2,.modal h3,.lvname,.mod-name,.empty strong,.pname{color:var(--title)}
+#aboutText{white-space:pre-line;overflow-wrap:anywhere}
 .brand p{margin:0;color:var(--muted);font-size:.85rem}
 nav.tabs{display:flex;gap:4px;flex-wrap:wrap}
 .tab{font-family:var(--display);font-weight:600;font-size:.9rem;letter-spacing:.04em;text-transform:uppercase;background:none;border:1px solid transparent;color:var(--muted);padding:7px 12px;border-radius:8px;cursor:pointer}
@@ -65,14 +68,15 @@ main.wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;paddin
 .row .name{font-size:1.3rem}
 .pts.pct{color:var(--accent)}
 .lvrows{display:flex;flex-direction:column;gap:8px}
-.lvrow{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;min-height:54px;padding:10px 18px;border:1px solid var(--line);border-radius:9px;cursor:pointer;text-align:left;
-  background:var(--surface-2);color:var(--fg);font-family:var(--display);font-weight:700;font-size:1.05rem;transition:border-color .15s, transform .15s}
-.lvrow.has-img{background:linear-gradient(90deg,rgba(8,10,16,.82),rgba(8,10,16,.55) 55%,rgba(8,10,16,.8)),var(--img) center/cover no-repeat;color:#ffd166;border-color:rgba(255,255,255,.08);text-shadow:0 1px 3px rgba(0,0,0,.7)}
+.lvrow{display:grid;grid-template-columns:minmax(0,33%) 64px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;min-height:64px;padding:0 18px 0 0;border:1px solid var(--line);border-radius:9px;cursor:pointer;text-align:left;overflow:hidden;
+  background:var(--surface-2);color:var(--rowtext);font-family:var(--display);font-weight:700;font-size:1.05rem;transition:border-color .15s, transform .15s}
+.lvimg{align-self:stretch;min-height:64px;background:linear-gradient(135deg,var(--surface),var(--accent-soft));-webkit-mask-image:linear-gradient(90deg,#000 72%,transparent);mask-image:linear-gradient(90deg,#000 72%,transparent)}
+.lvimg.has{background:var(--img) center/cover no-repeat}
 .lvrow:hover{border-color:var(--accent)}
 @media (prefers-reduced-motion:no-preference){.lvrow:hover{transform:translateX(2px)}}
 .lvrow .lvname{min-width:0;overflow-wrap:anywhere}
 .lvrow .lvpos,.lvrow .lvpts{font-variant-numeric:tabular-nums;white-space:nowrap;color:inherit;font-size:inherit;margin:0}
-@media (max-width:520px){.lvrow{grid-template-columns:52px minmax(0,1fr) auto;padding:10px 12px;font-size:.92rem}}
+@media (max-width:520px){.lvrow{grid-template-columns:minmax(0,30%) 44px minmax(0,1fr) auto;gap:8px;padding-right:10px;font-size:.9rem}}
 .cl-list{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
 .cl-item{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 8px;font-size:.88rem;align-items:baseline}
 .cl-date{font-family:var(--display);font-size:.75rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -165,6 +169,32 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
 .lvchip:hover{border-color:var(--accent)}
 .lvpos{font-family:var(--display);font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
 .lvpts{font-family:var(--display);font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums;margin-left:2px}
+.av{position:relative;display:inline-grid;place-items:center;flex:none;border-radius:50%;overflow:hidden;background:var(--accent-soft);color:var(--accent);font-family:var(--display);font-weight:700;border:1px solid var(--line)}
+.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.pcell{display:inline-flex;align-items:center;gap:10px}
+.phead{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.phead .pinfo{min-width:0;flex:1 1 220px}
+.mods{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.mod{display:flex;align-items:center;gap:10px;min-width:0}
+.mod .mtxt{min-width:0;flex:1}
+.mod-name{font-family:var(--display);font-weight:700;display:block;overflow-wrap:anywhere}
+.mod-role{font-size:.8rem;color:var(--muted)}
+.mod a{font-size:.82rem;font-weight:700;text-decoration:none;white-space:nowrap}
+.mod-edit{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:6px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.mod-edit input{background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:6px 8px;min-width:0;width:100%}
+.mod-edit .wide{grid-column:1/-1}
+.upl{display:flex;gap:8px;align-items:center}
+.upl input[type=text],.upl input:not([type]){flex:1 1 auto}
+.upl .btn{padding:7px 12px;white-space:nowrap;font-size:.85rem;color:var(--fg)}
+.colors{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px 14px}
+.crow{display:flex;align-items:center;gap:8px;font-size:.85rem}
+.crow input[type=color]{width:42px;height:30px;padding:1px;border:1px solid var(--line);border-radius:6px;background:var(--surface-2);flex:none}
+.crow .cl{flex:1;min-width:0}
+.crow label{display:flex;gap:4px;align-items:center;font-size:.75rem;color:var(--muted);white-space:nowrap}
+.stage{position:relative;border-radius:14px;isolation:isolate}
+.stage.has-art{padding:14px;border:1px solid var(--line);overflow:hidden;background:var(--surface)}
+.stage.has-art::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--art) center/cover no-repeat;opacity:var(--artop)}
+.stage.has-art .detail-hero,.stage.has-art .panel,.stage.has-art .tablebox,.stage.has-art .empty{background:color-mix(in srgb, var(--surface) 62%, transparent);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
 .inline-form input{width:110px;background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:8px 10px}
 </style>
 </head>
@@ -205,6 +235,11 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
       <h3>Secciones</h3>
       <div class="legend" id="legend"></div>
     </div>
+    <div class="panel">
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px"><h3 style="margin:0;margin-right:auto">Moderadores</h3>
+        <button class="ibtn" id="modEdit" hidden>Editar</button></div>
+      <ul class="mods" id="modList"></ul>
+    </div>
     <div class="panel" id="editorPanel">
       <h3>Editor</h3>
       <div id="loginBox">
@@ -235,7 +270,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const uid = () => Math.random().toString(36).slice(2, 10);
 
-  let state = { title:"Demonlist", tagline:"", about:"", discordUrl:"", submitUrl:"", mainSize:75, extSize:150, demons:[], upcoming:[], changelog:[] };
+  let state = { title:"Demonlist", tagline:"", about:"", discordUrl:"", submitUrl:"", mainSize:75, extSize:150, demons:[], upcoming:[], changelog:[], players:{}, mods:[] };
   let loaded = false, editing = false, password = "";
   let tab = "main", openDemon = null, openUp = null, query = "";
   try { password = sessionStorage.getItem("dl_pw") || ""; } catch {}
@@ -326,6 +361,23 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     const id = ytId(d.video);
     return id ? `https://img.youtube.com/vi/${id}/mqdefault.jpg` : "";
   }
+  // Imagen en perfiles: la de perfiles > la personalizada (si se permite) > miniatura del video
+  function profileImg(d){
+    if (d.profileImg) return d.profileImg;
+    if (d.art && d.artInProfile !== false) return d.art;
+    return thumbSrc(d);
+  }
+  function stageOpen(d){
+    if (!d.art) return `<div class="stage">`;
+    const op = Math.max(0, Math.min(100, Number(d.artOpacity ?? 35))) / 100;
+    return `<div class="stage has-art" style="--art:url('${esc(d.art).replace(/'/g,"%27")}');--artop:${op}">`;
+  }
+  function ytChannelUrl(v){
+    v = String(v||"").trim(); if (!v) return "";
+    if (/^https?:\/\//i.test(v)) return v;
+    if (/^UC[\w-]{22}$/.test(v)) return "https://www.youtube.com/channel/" + v;
+    return "https://www.youtube.com/@" + v.replace(/^@/, "");
+  }
   function thumbHTML(d, pos){
     const s = thumbSrc(d);
     return s ? `<div class="thumb"><img src="${esc(s)}" alt="" loading="lazy"></div>`
@@ -354,22 +406,50 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     l.href = "https://fonts.googleapis.com/css2?" + fams.map(f => "family=" + f.replace(/ /g,"+") + ":wght@400;600;700").join("&") + "&display=swap";
     document.head.appendChild(l);
   }
+  // Colores configurables: clave -> variable CSS
+  const COLOR_KEYS = [
+    ["title","--title","Títulos y nombres de niveles"],
+    ["text","--fg","Texto normal"],
+    ["muted","--muted","Texto secundario (fechas, “publicado por”)"],
+    ["accent","--accent","Color principal (botones, links, pestañas)"],
+    ["rowtext","--rowtext","Puestos y puntos en perfiles"],
+    ["bgc","--bg","Fondo de la página"],
+    ["header","--header","Barra de arriba"],
+    ["surface","--surface","Cuadros (tarjetas y paneles)"],
+    ["surface2","--surface-2","Cuadros internos (botones, campos, tablas)"],
+    ["line","--line","Bordes de los cuadros"]
+  ];
+  function themeColors(t){
+    const c = {...(t.colors||{})};
+    if (!c.accent && t.accent) c.accent = t.accent;   // versiones anteriores
+    if (!c.text && t.text) c.text = t.text;
+    return c;
+  }
   function applyTheme(){
-    const t = state.theme || {}, root = document.documentElement;
+    const t = state.theme || {}, root = document.documentElement, c = themeColors(t);
     loadFonts([t.fontTitle, t.fontBody].filter(Boolean));
     if (FONTS.includes(t.fontTitle)) root.style.setProperty("--display", fontStack(t.fontTitle)); else root.style.removeProperty("--display");
     if (FONTS.includes(t.fontBody)) root.style.setProperty("--body", fontStack(t.fontBody)); else root.style.removeProperty("--body");
-    if (hexLum(t.text) !== null){
-      root.style.setProperty("--fg", t.text);
-      root.style.setProperty("--muted", `color-mix(in srgb, ${t.text} 62%, var(--bg))`);
-    } else ["--fg","--muted"].forEach(k => root.style.removeProperty(k));
     if (t.mode === "light" || t.mode === "dark") root.setAttribute("data-theme", t.mode); else root.removeAttribute("data-theme");
-    const lum = hexLum(t.accent);
+    // limpiar y aplicar colores
+    COLOR_KEYS.forEach(([,v]) => root.style.removeProperty(v));
+    ["--accent-ink","--accent-soft"].forEach(k => root.style.removeProperty(k));
+    COLOR_KEYS.forEach(([k,v]) => { if (hexLum(c[k]) !== null) root.style.setProperty(v, c[k]); });
+    if (hexLum(c.text) !== null && hexLum(c.muted) === null) root.style.setProperty("--muted", `color-mix(in srgb, ${c.text} 62%, var(--bg))`);
+    const lum = hexLum(c.accent);
     if (lum !== null){
-      root.style.setProperty("--accent", t.accent);
       root.style.setProperty("--accent-ink", lum > .4 ? "#111111" : "#ffffff");
-      root.style.setProperty("--accent-soft", `color-mix(in srgb, ${t.accent} 18%, var(--surface))`);
-    } else ["--accent","--accent-ink","--accent-soft"].forEach(k => root.style.removeProperty(k));
+      root.style.setProperty("--accent-soft", `color-mix(in srgb, ${c.accent} 18%, var(--surface))`);
+    }
+    // transparencia de cuadros
+    const alpha = Math.max(30, Math.min(100, Number(t.boxAlpha ?? 100)));
+    if (alpha < 100){
+      const cs = getComputedStyle(root);
+      ["--surface","--surface-2","--header"].forEach(v => {
+        const base = cs.getPropertyValue(v).trim();
+        if (base) root.style.setProperty(v, `color-mix(in srgb, ${base} ${alpha}%, transparent)`);
+      });
+    }
     if (t.bg){
       const dim = Math.max(0, Math.min(95, Number(t.bgDim ?? 80)));
       document.body.style.backgroundImage = `linear-gradient(color-mix(in srgb, var(--bg) ${dim}%, transparent), color-mix(in srgb, var(--bg) ${dim}%, transparent)), url("${String(t.bg).replace(/["\\]/g,"")}")`;
@@ -379,6 +459,70 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     } else {
       ["backgroundImage","backgroundSize","backgroundPosition","backgroundAttachment"].forEach(k => document.body.style[k] = "");
     }
+  }
+
+  // ---------- fotos de perfil ----------
+  const pkey = name => String(name||"").trim().toLowerCase();
+  function playerInfo(name){ return (state.players||{})[pkey(name)] || {}; }
+  function playerAvatar(name){
+    const i = playerInfo(name);
+    if (i.avatar) return i.avatar;
+    if (i.youtube) return "/api/avatar?yt=" + encodeURIComponent(i.youtube);
+    return "";
+  }
+  function discordId(v){ const m = String(v||"").match(/(?:users\/)?(\d{15,22})(?!\d)/); return m ? m[1] : ""; }
+  function discordLink(v){
+    v = String(v||"").trim(); if (!v) return "";
+    if (/^https?:\/\//i.test(v)) return v;
+    const id = discordId(v); return id ? "https://discord.com/users/" + id : "";
+  }
+  function modAvatar(m){ if (m.avatar) return m.avatar; const id = discordId(m.discord); return id ? "/api/avatar?dc=" + id : ""; }
+  function avHTML(name, src, size){
+    const ini = esc((String(name||"?").trim()[0] || "?").toUpperCase());
+    return `<span class="av" style="width:${size}px;height:${size}px;font-size:${Math.round(size*.42)}px" aria-hidden="true">${ini}${src ? `<img src="${esc(src)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</span>`;
+  }
+
+  // ---------- subir imágenes ----------
+  async function shrink(file){
+    if (file.type === "image/gif" || file.size < 350*1024) return file;
+    try {
+      const bmp = await createImageBitmap(file);
+      const max = 1600, k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+      const cv = document.createElement("canvas");
+      cv.width = Math.round(bmp.width*k); cv.height = Math.round(bmp.height*k);
+      cv.getContext("2d").drawImage(bmp, 0, 0, cv.width, cv.height);
+      let blob = await new Promise(res => cv.toBlob(res, "image/webp", .86));
+      if (!blob || blob.type !== "image/webp") blob = await new Promise(res => cv.toBlob(res, "image/jpeg", .88));
+      return blob && blob.size < file.size ? blob : file;
+    } catch { return file; }
+  }
+  async function uploadImage(file){
+    const body = await shrink(file);
+    const r = await fetch("/api/upload", {method:"POST", headers:{"content-type": body.type || file.type, "x-admin-password": password}, body});
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || "Error " + r.status);
+    return d.url;
+  }
+  // Campo de imagen: link + botón "Subir"
+  function imgField(id, value, placeholder){
+    return `<span class="upl"><input id="${id}" value="${esc(value||"")}" placeholder="${esc(placeholder||"Link de una imagen")}">
+      <label class="btn">Subir<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-upload="${id}" hidden></label></span>`;
+  }
+  function bindUploads(statusEl){ bindUploadsIn(document, statusEl); }
+  function bindUploadsIn(scope, statusEl){
+    scope.querySelectorAll("[data-upload]").forEach(inp => {
+      if (inp.dataset.bound) return; inp.dataset.bound = "1";
+      inp.addEventListener("change", async () => {
+      const f = inp.files[0]; if (!f) return;
+      const target = document.getElementById(inp.dataset.upload);
+      const say = m => { if (statusEl) statusEl.textContent = m; };
+      if (f.size > 15*1024*1024){ say("Esa imagen es demasiado grande (máx. 15 MB)."); return; }
+      say("Subiendo imagen…");
+      try { target.value = await uploadImage(f); target.dispatchEvent(new Event("input")); say("Imagen subida."); }
+      catch(e){ say("No se pudo subir: " + e.message); }
+      inp.value = "";
+      });
+    });
   }
 
   function render(){
@@ -393,7 +537,9 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
       (state.submitUrl ? `<a class="btn primary" href="${esc(state.submitUrl)}" target="_blank" rel="noopener">Subir récord</a>` : "");
     document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === tab && !openDemon && !openPlayer && !openUp)));
     renderChangelog();
+    renderMods();
     $("#clEdit").hidden = !editing;
+    $("#modEdit").hidden = !editing;
     $("#loginBox").hidden = editing;
     $("#editorTools").hidden = !editing;
     if (!loaded) return;
@@ -467,6 +613,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     const video = ytLink(d.video), ts = thumbSrc(d), req = reqFor(d,pos);
     const progOk = basePoints(pos) && pos <= state.mainSize && req < 100;
     let html = `<button class="back" id="back">← Volver a la lista</button>
+    ${stageOpen(d)}
     <div class="detail-hero">
       ${ts ? `<div class="thumb"><img src="${esc(ts)}" alt="Miniatura de ${esc(d.name)}"></div>` : `<div class="thumb"><span class="ph">#${pos}</span></div>`}
       <div style="min-width:0">
@@ -488,7 +635,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     </div>
     ${d.notes ? `<div class="panel" style="margin-top:16px"><h3>Notas</h3><p>${esc(d.notes)}</p></div>` : ""}
     <div class="section-head" style="margin-top:22px;margin-bottom:0"><h2>Récords</h2><span class="count">${recs.length} ${recs.length===1?"récord":"récords"}${progOk?` · list%: ${req}%`:basePoints(pos)?" · solo cuenta el 100%":""}</span></div>`;
-    if (!recs.length) return html + `<div class="empty" style="margin-top:12px"><strong>Sin récords aún</strong>${editing?"Pulsa “Editar demon” para añadir récords.":"Nadie ha registrado progreso en este nivel."}</div>`;
+    if (!recs.length) return html + `<div class="empty" style="margin-top:12px"><strong>Sin récords aún</strong>${editing?"Pulsa “Editar demon” para añadir récords.":"Nadie ha registrado progreso en este nivel."}</div></div>`;
     html += `<div class="tablebox"><table><thead><tr><th>Jugador</th><th>Progreso</th><th>Puntos</th><th>Video</th></tr></thead><tbody>`;
     for (const r of recs){
       const p = Math.max(0,Math.min(100,+r.progress||0));
@@ -496,7 +643,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
         <td class="num">${fmt(recordPoints(pos,p,req))}</td>
         <td>${r.video?`<a href="${esc(ytLink(r.video))}" target="_blank" rel="noopener">Abrir ↗</a>`:"—"}</td></tr>`;
     }
-    return html + `</tbody></table></div>`;
+    return html + `</tbody></table></div></div>`;
   }
   function bindDetail(){ /* links de jugador se enlazan en render */
     $("#back")?.addEventListener("click", () => { openDemon = null; render(); });
@@ -518,7 +665,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     for (const p of rows){
       const done = p.entries.filter(e => e.progress >= 100 && !e.upcoming);
       const hardest = done.reduce((a,e) => !a || e.pos < a.pos ? e : a, null);
-      html += `<tr><td class="num">${p.rank}</td><td>${plink(p.name)}</td><td class="num">${fmt(p.pts)}</td>
+      html += `<tr><td class="num">${p.rank}</td><td><span class="pcell">${avHTML(p.name, playerAvatar(p.name), 30)}${plink(p.name)}</span></td><td class="num">${fmt(p.pts)}</td>
         <td class="num">${done.length}</td><td class="num">${p.entries.filter(e=>e.verified).length}</td>
         <td class="num">${p.entries.filter(e=>e.progress<100 || e.upcoming).length}</td>
         <td>${hardest?esc(hardest.d.name)+` <span class="hint">(#${hardest.pos})</span>`:"—"}</td></tr>`;
@@ -539,12 +686,12 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     const upProg = p.entries.filter(e => e.upcoming).sort((a,b)=>a.upPos-b.upPos);
     const hardest = by(e => e.progress >= 100)[0];
     const lvRow = (e, withPct) => {
-      const src = thumbSrc(e.d);
+      const src = profileImg(e.d);
       const bg = src ? ` style="--img:url('${esc(src).replace(/'/g,"%27")}')"` : "";
       const attr = e.upcoming ? `data-upopen="${e.d.id}"` : `data-demon="${e.d.id}"`;
       const label = e.upcoming ? "Futuro" : "#"+e.pos;
       const right = e.upcoming ? `${e.progress}%` : (withPct ? `${e.progress}% · ` : "") + `+${fmt(e.pts)}`;
-      return `<button class="lvrow${src?" has-img":""}" ${attr}${bg}><span class="lvpos">${label}</span><span class="lvname">${esc(e.d.name)}</span><span class="lvpts">${right}</span></button>`;
+      return `<button class="lvrow" ${attr}><span class="lvimg${src?" has":""}"${bg}></span><span class="lvpos">${label}</span><span class="lvname">${esc(e.d.name)}</span><span class="lvpts">${right}</span></button>`;
     };
     const chips = (list, withPct) => list.length
       ? `<div class="lvrows">${list.map(e => lvRow(e, withPct)).join("")}</div>`
@@ -558,10 +705,20 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
         parts.length ? parts.map(([label,l]) => `<div class="sub" style="margin:10px 0 6px">${label} (${l.length})</div>${chips(l,withPct)}`).join("") : `<p class="hint" style="margin:0">Ninguno</p>`
       }</div>`;
     };
+    const info = playerInfo(p.name), ytUrl = ytChannelUrl(info.youtube);
     html += `<div class="detail-hero" style="grid-template-columns:minmax(0,1fr)">
       <div style="min-width:0">
+       <div class="phead">
+        ${avHTML(p.name, playerAvatar(p.name), 96)}
+        <div class="pinfo">
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px"><span class="pos${p.rank<=3?" p"+p.rank:""}">#${p.rank}</span><span class="chip">Leaderboard</span></div>
         <h2>${esc(p.name)}</h2>
+        <div class="btn-row" style="margin-top:10px">
+          ${ytUrl ? `<a class="btn" href="${esc(ytUrl)}" target="_blank" rel="noopener">Canal de YouTube ↗</a>` : ""}
+          ${editing ? `<button class="btn primary" id="editPlayer">Editar foto y canal</button>` : ""}
+        </div>
+        </div>
+       </div>
         <div class="facts">
           <div class="fact"><span>Puntos</span><b>${fmt(p.pts)}</b></div>
           <div class="fact"><span>Completados</span><b>${verified.length + done.length}</b></div>
@@ -579,6 +736,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
   }
   function bindProfile(){
     $("#pback")?.addEventListener("click", () => { openPlayer = null; tab = "stats"; render(); });
+    $("#editPlayer")?.addEventListener("click", () => { const p = buildPlayers().find(x => x.name.toLowerCase() === openPlayer); if (p) openPlayerForm(p.name); });
     document.querySelectorAll("[data-demon]").forEach(b => b.addEventListener("click", () => {
       openDemon = b.dataset.demon; openPlayer = null; render(); window.scrollTo({top:0});
     }));
@@ -772,6 +930,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     if (!d){ openUp = null; return upListHTML(); }
     const pct = clampPct(d.progress), ts = thumbSrc(d), video = ytLink(d.video);
     return `<button class="back" id="uback">← Volver a futuros niveles</button>
+    ${stageOpen(d)}
     <div class="detail-hero">
       ${ts ? `<div class="thumb"><img src="${esc(ts)}" alt="Miniatura de ${esc(d.name)}"></div>` : `<div class="thumb"><span class="ph">?</span></div>`}
       <div style="min-width:0">
@@ -790,7 +949,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
         </div>
       </div>
     </div>
-    ${d.notes ? `<div class="panel" style="margin-top:16px"><h3>Notas</h3><p>${esc(d.notes)}</p></div>` : ""}`;
+    ${d.notes ? `<div class="panel" style="margin-top:16px"><h3>Notas</h3><p>${esc(d.notes)}</p></div>` : ""}</div>`;
   }
   function bindUpDetail(){
     $("#uback")?.addEventListener("click", () => { openUp = null; tab = "up"; render(); });
@@ -814,7 +973,8 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
         <label class="f">Video del progreso<input id="u_vid" placeholder="Link de YouTube" value="${esc(d.video)}"></label>
       </div>
       <label class="f" style="margin-top:12px">Miniatura personalizada <span class="hint">Opcional. Si la dejas vacía se usa la del video de YouTube.</span>
-        <input id="u_thumb" value="${esc(d.thumb)}" placeholder="URL de una imagen"></label>
+        ${imgField("u_thumb", d.thumb, "URL de una imagen")}</label>
+      ${artFields("u", d)}
       <label class="f" style="margin-top:12px">Notas<textarea id="u_notes" rows="2">${esc(d.notes)}</textarea></label>
       <div class="foot">
         <span class="status" id="uStatus"></span>
@@ -823,6 +983,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
         <button type="submit" class="btn primary">${isNew?"Agregar":"Guardar"}</button>
       </div></form>`, close => {
       $("#cancel").onclick = close;
+      bindUploads($("#uStatus")); bindArt("u");
       const del = $("#uDel");
       if (del) del.onclick = () => {
         if (del.dataset.confirm){ if (openUp===d.id) openUp=null; save({...state, upcoming:list.filter(x=>x.id!==d.id)}); close(); }
@@ -832,12 +993,118 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
         e.preventDefault();
         const nd = {...d, name:$("#u_name").value.trim(), publisher:$("#u_pub").value.trim(), creator:$("#u_cre").value.trim(),
           player:$("#u_pl").value.trim(), progress:clampPct($("#u_pr").value), levelId:$("#u_lid").value.trim(),
-          video:$("#u_vid").value.trim(), thumb:$("#u_thumb").value.trim(), notes:$("#u_notes").value.trim()};
+          video:$("#u_vid").value.trim(), thumb:$("#u_thumb").value.trim(), notes:$("#u_notes").value.trim(), ...readArt("u")};
         if (!nd.name){ $("#uStatus").textContent = "Escribe el nombre del nivel."; return; }
         const arr = list.filter(x=>x.id!==d.id);
         const p = Math.max(1, Math.min(arr.length+1, Number($("#u_pos").value)||arr.length+1));
         arr.splice(p-1, 0, nd);
         save({...state, upcoming:arr}); close();
+      });
+    });
+  }
+
+
+  // ---------- campos de imagen personalizada por nivel ----------
+  function artFields(px, d){
+    const op = Number(d.artOpacity ?? 35);
+    return `<div class="sub">Imagen personalizada</div>
+      <label class="f">Imagen de fondo del nivel <span class="hint">sale detrás de la página del nivel, como en la AREDL</span>
+        ${imgField(px+"_art", d.art, "Link de la imagen o pulsa Subir")}</label>
+      <label class="f" style="margin-top:10px">Opacidad de la imagen: <span id="${px}_artopv">${op}%</span>
+        <input id="${px}_artop" type="range" min="5" max="100" step="5" value="${op}"></label>
+      <label class="hint" style="display:flex;gap:6px;align-items:center;margin-top:8px;font-weight:600">
+        <input type="checkbox" id="${px}_artprof" ${d.artInProfile === false ? "" : "checked"}> Usar esta imagen también en los perfiles de jugadores</label>
+      <label class="f" style="margin-top:10px">Otra imagen solo para perfiles <span class="hint">opcional; si la pones, se usa en vez de la anterior</span>
+        ${imgField(px+"_pimg", d.profileImg, "Link de la imagen o pulsa Subir")}</label>`;
+  }
+  function bindArt(px){
+    const r = document.getElementById(px+"_artop");
+    if (r) r.addEventListener("input", () => document.getElementById(px+"_artopv").textContent = r.value + "%");
+  }
+  function readArt(px){
+    return {
+      art: document.getElementById(px+"_art").value.trim(),
+      artOpacity: Number(document.getElementById(px+"_artop").value),
+      artInProfile: document.getElementById(px+"_artprof").checked,
+      profileImg: document.getElementById(px+"_pimg").value.trim()
+    };
+  }
+
+  // ---------- jugadores: foto y canal ----------
+  function openPlayerForm(name){
+    const k = pkey(name), info = playerInfo(name);
+    modal(`<h3>${esc(name)}</h3><form id="pf">
+      <div class="phead" style="margin-bottom:14px">${`<span id="pprev">${avHTML(name, playerAvatar(name), 72)}</span>`}
+        <p class="hint" style="margin:0;flex:1 1 200px">Si pones el canal de YouTube, la foto se toma de ahí sola. Si prefieres otra, súbela abajo.</p></div>
+      <label class="f">Canal de YouTube <span class="hint">link del canal o @usuario</span>
+        <input id="p_yt" value="${esc(info.youtube||"")}" placeholder="https://www.youtube.com/@usuario"></label>
+      <label class="f" style="margin-top:12px">Foto personalizada <span class="hint">opcional; reemplaza la de YouTube</span>
+        ${imgField("p_av", info.avatar, "Link de la imagen o pulsa Subir")}</label>
+      <div class="foot"><span class="status" id="pStatus"></span>
+        <button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit">Guardar</button></div></form>`, close => {
+      $("#cancel").onclick = close;
+      bindUploads($("#pStatus"));
+      const prev = () => {
+        const av = $("#p_av").value.trim(), yt = $("#p_yt").value.trim();
+        $("#pprev").innerHTML = avHTML(name, av || (yt ? "/api/avatar?yt=" + encodeURIComponent(yt) : ""), 72);
+      };
+      $("#p_av").addEventListener("input", prev); $("#p_yt").addEventListener("change", prev);
+      $("#pf").addEventListener("submit", e => {
+        e.preventDefault();
+        const players = {...(state.players||{})};
+        const youtube = $("#p_yt").value.trim(), avatar = $("#p_av").value.trim();
+        if (youtube || avatar) players[k] = {youtube, avatar}; else delete players[k];
+        save({...state, players}); close();
+      });
+    });
+  }
+
+  // ---------- moderadores ----------
+  function renderMods(){
+    const mods = state.mods || [];
+    $("#modList").innerHTML = mods.length ? mods.map(m => {
+      const link = discordLink(m.discord);
+      return `<li class="mod">${avHTML(m.name, modAvatar(m), 38)}<span class="mtxt"><span class="mod-name">${esc(m.name)}</span>${m.role ? `<span class="mod-role">${esc(m.role)}</span>` : ""}</span>
+        ${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">Discord ↗</a>` : ""}</li>`;
+    }).join("") : `<li class="hint">${editing ? "Pulsa “Editar” para agregar a los moderadores." : "Todavía no hay moderadores."}</li>`;
+  }
+  function modRow(m={id:uid(), name:"", role:"", discord:"", avatar:""}){
+    const fid = "m_av_" + m.id;
+    return `<div class="mod-edit" data-id="${esc(m.id)}">
+      <input data-k="name" value="${esc(m.name)}" placeholder="Nombre" aria-label="Nombre">
+      <input data-k="role" value="${esc(m.role)}" placeholder="Cargo (ej. Moderador)" aria-label="Cargo">
+      <button type="button" class="ibtn" data-del aria-label="Quitar moderador">✕</button>
+      <input class="wide" data-k="discord" value="${esc(m.discord)}" placeholder="Link de su perfil de Discord o su ID (ej. https://discord.com/users/123…)" aria-label="Discord">
+      <span class="wide">${imgField(fid, m.avatar, "Foto personalizada (opcional)")}</span>
+    </div>`;
+  }
+  function openModsEditor(){
+    modal(`<h3>Moderadores</h3>
+      <p class="hint" style="margin-top:0">La foto sale de Discord si pones el link de su perfil o su ID. Si no carga, puedes subir una foto.</p>
+      <form id="mf"><div id="modRows">${(state.mods||[]).map(modRow).join("")}</div>
+      <button type="button" class="btn" id="modAdd">+ Añadir moderador</button>
+      <div class="foot"><span class="status" id="mStatus"></span>
+        <button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit">Guardar</button></div></form>`, close => {
+      $("#cancel").onclick = close;
+      const bind = () => { document.querySelectorAll("#modRows [data-del]").forEach(b => b.onclick = () => b.closest(".mod-edit").remove()); bindUploads($("#mStatus")); };
+      $("#modAdd").onclick = () => {
+        $("#modRows").insertAdjacentHTML("beforeend", modRow());
+        const last = $("#modRows").lastElementChild;
+        last.querySelectorAll("[data-del]").forEach(b => b.onclick = () => last.remove());
+        bindUploadsIn(last, $("#mStatus"));
+        last.querySelector('[data-k="name"]').focus();
+      };
+      bind();
+      $("#mf").addEventListener("submit", e => {
+        e.preventDefault();
+        const mods = [...document.querySelectorAll("#modRows .mod-edit")].map(r => ({
+          id: r.dataset.id,
+          name: r.querySelector('[data-k="name"]').value.trim(),
+          role: r.querySelector('[data-k="role"]').value.trim(),
+          discord: r.querySelector('[data-k="discord"]').value.trim(),
+          avatar: document.getElementById("m_av_" + r.dataset.id).value.trim()
+        })).filter(m => m.name);
+        save({...state, mods}); close();
       });
     });
   }
@@ -924,7 +1191,8 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
         <label class="f">Video de verificación<input id="f_vid" placeholder="Link de YouTube" value="${esc(d.video)}"></label>
       </div>
       <label class="f" style="margin-top:12px">Miniatura personalizada <span class="hint">Opcional. Si la dejas vacía se usa la del video de YouTube.</span>
-        <input id="f_thumb" value="${esc(d.thumb)}" placeholder="URL de una imagen"></label>
+        ${imgField("f_thumb", d.thumb, "URL de una imagen")}</label>
+      ${artFields("f", d)}
       <label class="f" style="margin-top:12px">Notas<textarea id="f_notes" rows="2">${esc(d.notes)}</textarea></label>
       <div class="sub">Récords</div>
       <div id="recs">${(d.records||[]).map(recRow).join("")}</div>
@@ -936,6 +1204,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
         <button type="submit" class="btn primary">${isNew?"Agregar":"Guardar"}</button>
       </div></form>`, close => {
       $("#cancel").onclick = close;
+      bindUploads($("#formStatus")); bindArt("f");
       const bindRecDel = () => document.querySelectorAll("[data-del]").forEach(b => b.onclick = () => b.parentElement.remove());
       $("#addRec").onclick = () => { $("#recs").insertAdjacentHTML("beforeend", recRow()); bindRecDel(); };
       bindRecDel();
@@ -953,7 +1222,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
         })).filter(r => r.player);
         const nd = {...d, name:$("#f_name").value.trim(), publisher:$("#f_pub").value.trim(), creator:$("#f_cre").value.trim(),
           verifier:$("#f_ver").value.trim(), levelId:$("#f_lid").value.trim(), req:(()=>{ const r=Number($("#f_req").value); return (r>=1 && r<100) ? Math.round(r) : null; })(),
-          video:$("#f_vid").value.trim(), thumb:$("#f_thumb").value.trim(), notes:$("#f_notes").value.trim(), records:recs};
+          video:$("#f_vid").value.trim(), thumb:$("#f_thumb").value.trim(), notes:$("#f_notes").value.trim(), records:recs, ...readArt("f")};
         if (!nd.name){ $("#formStatus").textContent = "Escribe el nombre del nivel."; return; }
         const arr = state.demons.filter(x=>x.id!==d.id);
         const p = Math.max(1, Math.min(arr.length+1, Number($("#f_pos").value)||arr.length+1));
@@ -964,12 +1233,12 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
   }
 
   function openSiteForm(){
-    const th = state.theme || {};
+    const th = state.theme || {}, tc = themeColors(th);
     loadedFonts = null;
     modal(`<h3>Editar sitio</h3><form id="sf">
       <label class="f">Título<input id="s_title" value="${esc(state.title)}"></label>
       <label class="f" style="margin-top:12px">Subtítulo<input id="s_tag" value="${esc(state.tagline)}"></label>
-      <label class="f" style="margin-top:12px">Texto “Acerca de”<textarea id="s_about" rows="3">${esc(state.about)}</textarea></label>
+      <label class="f" style="margin-top:12px">Texto “Acerca de”<textarea id="s_about" rows="6">${esc(state.about)}</textarea><span class="hint">Cada salto de línea se respeta tal cual.</span></label>
       <div class="grid2" style="margin-top:12px">
         <label class="f">Link de Discord<input id="s_dc" value="${esc(state.discordUrl)}" placeholder="https://discord.gg/..."></label>
         <label class="f">Link para subir récords<input id="s_sub" value="${esc(state.submitUrl)}" placeholder="https://..."></label>
@@ -984,19 +1253,16 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
             <option value="dark" ${th.mode==="dark"?"selected":""}>Oscuro</option>
             <option value="light" ${th.mode==="light"?"selected":""}>Claro</option>
           </select></label>
-        <label class="f">Color principal <span class="hint">botones, puestos y detalles</span>
-          <span style="display:flex;gap:8px;align-items:center">
-            <input id="s_acc" type="color" value="${esc(th.accent||"#c4253a")}" style="width:56px;height:38px;padding:2px">
-            <label class="hint" style="display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox" id="s_accDef" ${th.accent?"":"checked"}> Usar el de siempre</label>
-          </span></label>
+        <label class="f">Transparencia de los cuadros: <span id="s_alv">${th.boxAlpha ?? 100}%</span> <span class="hint">menos = se ve más la imagen de fondo</span>
+          <input id="s_al" type="range" min="30" max="100" step="5" value="${th.boxAlpha ?? 100}"></label>
       </div>
+      <p class="hint" style="margin:12px 0 6px">Colores. Marca “Por defecto” para dejar el color original de ese elemento.</p>
+      <div class="colors">${COLOR_KEYS.map(([k,v,label]) => {
+        const val = tc[k], cur = val || (getComputedStyle(document.documentElement).getPropertyValue(v).trim().match(/^#[0-9a-f]{6}$/i) || ["#888888"])[0];
+        return `<div class="crow"><input type="color" id="c_${k}" value="${esc(cur)}" aria-label="${esc(label)}"><span class="cl">${esc(label)}</span>
+          <label><input type="checkbox" id="cd_${k}" ${val?"":"checked"}> Por defecto</label></div>`;
+      }).join("")}</div>
       <div class="grid2" style="margin-top:12px">
-        <label class="f">Color de las letras
-          <span style="display:flex;gap:8px;align-items:center">
-            <input id="s_txt" type="color" value="${esc(th.text||"#e8ecf3")}" style="width:56px;height:38px;padding:2px">
-            <label class="hint" style="display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox" id="s_txtDef" ${th.text?"":"checked"}> Usar el de siempre</label>
-          </span></label>
-        <span></span>
         <label class="f">Letra de títulos
           <select id="s_ft">${FONTS.map(f => `<option value="${f}" ${(th.fontTitle||"Chakra Petch")===f?"selected":""} style="font-family:'${f}'">${f}</option>`).join("")}</select></label>
         <label class="f">Letra del texto
@@ -1004,21 +1270,23 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
       </div>
       <p class="hint" id="s_fprev" style="margin:8px 0 0">Vista previa: <span id="s_fpt" style="font-weight:700;font-size:1.1rem">Bloodbath #1</span> · <span id="s_fpb">publicado por Riot</span></p>
       <label class="f" style="margin-top:12px">Imagen de fondo <span class="hint">link directo a una imagen (.jpg, .png, .webp). Vacío = sin imagen.</span>
-        <input id="s_bg" value="${esc(th.bg||"")}" placeholder="https://.../fondo.jpg"></label>
+        ${imgField("s_bg", th.bg, "https://.../fondo.jpg o pulsa Subir")}</label>
       <label class="f" style="margin-top:12px">Oscurecer fondo: <span id="s_dimv">${th.bgDim ?? 80}%</span> <span class="hint">más alto = el texto se lee mejor</span>
         <input id="s_dim" type="range" min="0" max="95" step="5" value="${th.bgDim ?? 80}"></label>
-      <div class="foot"><button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit">Guardar</button></div></form>`, close => {
+      <div class="foot"><span class="status" id="sStatus"></span><button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit">Guardar</button></div></form>`, close => {
       $("#cancel").onclick = close;
+      bindUploads($("#sStatus"));
+      $("#s_al").addEventListener("input", e => $("#s_alv").textContent = e.target.value + "%");
+      COLOR_KEYS.forEach(([k]) => $("#c_"+k).addEventListener("input", () => $("#cd_"+k).checked = false));
       $("#s_dim").addEventListener("input", e => $("#s_dimv").textContent = e.target.value + "%");
-      $("#s_acc").addEventListener("input", () => $("#s_accDef").checked = false);
-      $("#s_txt").addEventListener("input", () => $("#s_txtDef").checked = false);
       const prev = () => { loadFonts([$("#s_ft").value, $("#s_fb").value]); $("#s_fpt").style.fontFamily = fontStack($("#s_ft").value); $("#s_fpb").style.fontFamily = fontStack($("#s_fb").value); };
       $("#s_ft").addEventListener("change", prev); $("#s_fb").addEventListener("change", prev); prev();
       $("#sf").addEventListener("submit", e => {
         e.preventDefault();
-        const theme = { mode: $("#s_mode").value, accent: $("#s_accDef").checked ? "" : $("#s_acc").value,
+        const colors = {};
+        COLOR_KEYS.forEach(([k]) => { if (!$("#cd_"+k).checked) colors[k] = $("#c_"+k).value; });
+        const theme = { mode: $("#s_mode").value, colors, boxAlpha: Number($("#s_al").value),
           bg: $("#s_bg").value.trim(), bgDim: Number($("#s_dim").value),
-          text: $("#s_txtDef").checked ? "" : $("#s_txt").value,
           fontTitle: $("#s_ft").value === "Chakra Petch" ? "" : $("#s_ft").value,
           fontBody: $("#s_fb").value === "Nunito Sans" ? "" : $("#s_fb").value };
         const m = Math.max(1, Number($("#s_main").value)||75);
@@ -1068,6 +1336,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
   $("#addUp").onclick = () => { tab = "up"; openDemon = openPlayer = openUp = null; render(); openUpForm(null); };
   $("#clAll").onclick = openChangelogAll;
   $("#clEdit").onclick = openChangelogEditor;
+  $("#modEdit").onclick = openModsEditor;
 
   async function boot(){
     if (password){
@@ -1081,6 +1350,8 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
       state.demons = (state.demons||[]).map(x => ({records:[], ...x}));
       state.upcoming = Array.isArray(state.upcoming) ? state.upcoming : [];
       state.changelog = Array.isArray(state.changelog) ? state.changelog : [];
+      state.mods = Array.isArray(state.mods) ? state.mods : [];
+      state.players = (state.players && typeof state.players === "object" && !Array.isArray(state.players)) ? state.players : {};
       loaded = true; render();
     } catch (err) {
       loaded = true; render();
