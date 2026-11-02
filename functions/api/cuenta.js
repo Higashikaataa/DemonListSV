@@ -40,6 +40,19 @@ async function newSession(env, k) {
   await env.LIST.put("session:" + token, k, { expirationTtl: SESSION_TTL });
   return token;
 }
+// Índice de nombres con cuenta, para que salgan en el leaderboard aunque no tengan récords
+async function addAccount(env, name) {
+  const list = (await env.LIST.get("accounts", "json")) || [];
+  if (list.some(n => pkey(n) === pkey(name))) return;
+  list.push(name);
+  await env.LIST.put("accounts", JSON.stringify(list));
+}
+async function removeAccount(env, k) {
+  const list = (await env.LIST.get("accounts", "json")) || [];
+  const next = list.filter(n => pkey(n) !== k);
+  if (next.length !== list.length) await env.LIST.put("accounts", JSON.stringify(next));
+}
+
 async function sessionUser(request, env) {
   const t = request.headers.get("x-session") || "";
   if (!/^[a-f0-9]{64}$/.test(t)) return null;
@@ -78,11 +91,13 @@ export async function onRequestPost({ request, env }) {
       if (existing) return json({ error: "Ese nombre ya tiene cuenta. Usa “Iniciar sesión”." }, 409);
       const salt = hex(crypto.getRandomValues(new Uint8Array(16)));
       await env.LIST.put("user:" + k, JSON.stringify({ name, salt, hash: await hashPw(pw, salt, ITER), iter: ITER, created: Date.now() }));
+      await addAccount(env, name);
       return json({ token: await newSession(env, k), name });
     }
     if (!existing) return json({ error: "Ese nombre todavía no tiene cuenta. Usa “Crear cuenta”." }, 404);
     const h = await hashPw(pw, existing.salt, existing.iter || ITER);
     if (!sameStr(h, existing.hash)) return json({ error: "Contraseña incorrecta." }, 401);
+    await addAccount(env, existing.name);
     return json({ token: await newSession(env, k), name: existing.name });
   }
 
@@ -91,6 +106,7 @@ export async function onRequestPost({ request, env }) {
     const k = pkey(body.name);
     if (!k) return json({ error: "Falta el nombre." }, 400);
     await env.LIST.delete("user:" + k);
+    await removeAccount(env, k);
     return json({ ok: true });
   }
 
@@ -98,6 +114,7 @@ export async function onRequestPost({ request, env }) {
   if (!me) return json({ error: "Tu sesión terminó. Inicia sesión otra vez." }, 401);
 
   if (action === "me") {
+    await addAccount(env, me.name); // cuentas creadas antes de este cambio
     const profiles = (await env.LIST.get("profiles", "json")) || {};
     return json({ name: me.name, profile: profiles[me.k] || {} });
   }

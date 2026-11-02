@@ -32,12 +32,13 @@ const json = (obj, status = 200) =>
 
 export async function onRequestGet({ env }) {
   if (!env.LIST) return json({ error: "Falta vincular el KV con el nombre LIST." }, 500);
-  const [data, profiles] = await Promise.all([env.LIST.get("main"), env.LIST.get("profiles")]);
+  const [data, profiles, accounts] = await Promise.all([env.LIST.get("main"), env.LIST.get("profiles"), env.LIST.get("accounts")]);
   // Los perfiles que editan los propios jugadores se guardan aparte ("profiles")
   // para que un guardado del editor nunca los borre.
   const prof = profiles || "{}";
-  if (!data) return json({ ...DEFAULT, profiles: JSON.parse(prof) });
-  return new Response(data.replace(/\}\s*$/, ',"profiles":' + prof + "}"), {
+  const acc = accounts || "[]";
+  if (!data) return json({ ...DEFAULT, profiles: JSON.parse(prof), accounts: JSON.parse(acc) });
+  return new Response(data.replace(/\}\s*$/, ',"profiles":' + prof + ',"accounts":' + acc + "}"), {
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }
   });
 }
@@ -53,7 +54,7 @@ export async function onRequestPut({ request, env }) {
   let data;
   try { data = JSON.parse(body); } catch { return json({ error: "JSON no válido." }, 400); }
   if (!data || !Array.isArray(data.demons)) return json({ error: "Falta la lista de demons." }, 400);
-  delete data.profiles; // los perfiles de jugadores no se guardan desde el editor
+  delete data.profiles; delete data.accounts; // esto lo manejan las cuentas, no el editor
 
   await env.LIST.put("main", JSON.stringify(data));
   return json({ ok: true });

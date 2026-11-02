@@ -1,6 +1,6 @@
 // /api/envios  -> récords enviados por los jugadores, esperando aprobación
 //
-//   POST   (header x-session)          { levelId, kind:"list"|"up", levelName, progress, video, note }
+//   POST   (header x-session)          { levelId, kind:"list"|"up"|"run", levelName, progress, from, video, note }
 //   GET    (header x-session)          -> los envíos pendientes de ese jugador
 //   GET    (header x-admin-password)   -> todos los envíos pendientes (moderadores)
 //   DELETE ?id=<id> (admin, o el mismo jugador para cancelar el suyo)
@@ -50,7 +50,8 @@ export async function onRequestPost({ request, env }) {
   let b;
   try { b = await request.json(); } catch { return json({ error: "Datos no válidos." }, 400); }
 
-  const kind = b.kind === "up" ? "up" : "list";
+  const kind = b.kind === "up" || b.kind === "run" ? b.kind : "list";
+  const from = kind === "run" ? Math.round(Number(b.from)) : 0;
   const levelId = String(b.levelId || "").slice(0, 40);
   const levelName = String(b.levelName || "").replace(/[\u0000-\u001f]/g, "").slice(0, 60);
   const progress = Math.round(Number(b.progress));
@@ -59,6 +60,7 @@ export async function onRequestPost({ request, env }) {
 
   if (!levelId || !levelName) return json({ error: "Elige un nivel." }, 400);
   if (!(progress >= 1 && progress <= 100)) return json({ error: "El progreso debe estar entre 1 y 100." }, 400);
+  if (kind === "run" && !(from >= 0 && from < progress)) return json({ error: "El run debe empezar antes de donde termina (ej. 20 a 100)." }, 400);
   let host = "";
   try { const u = new URL(video); if (u.protocol === "https:" || u.protocol === "http:") host = u.hostname.toLowerCase(); } catch {}
   if (!/(^|\.)(youtube\.com|youtu\.be)$/.test(host)) return json({ error: "Pon el link de YouTube del video." }, 400);
@@ -69,6 +71,7 @@ export async function onRequestPost({ request, env }) {
 
   const id = prefix + Date.now().toString(36) + crypto.randomUUID().slice(0, 6);
   const meta = { player: me.name, kind, levelId, levelName, progress, video, note, date: Date.now() };
+  if (kind === "run") meta.from = from;
   await env.LIST.put(id, "1", { metadata: meta });
   return json({ ok: true, item: { id, ...meta } });
 }
