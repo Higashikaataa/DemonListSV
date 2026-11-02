@@ -36,9 +36,10 @@ header.top{background:var(--header);border-bottom:1px solid var(--line);position
 .brand h1 span{color:var(--accent)}
 .brand h1,.section-head h2,.name,.detail-hero h2,.modal h3,.lvname,.mod-name,.empty strong,.pname{color:var(--title)}
 #aboutText{white-space:pre-line;overflow-wrap:anywhere}
-.brand p{margin:0;color:var(--muted);font-size:.85rem}
+.brand p{margin:0;color:var(--headertext, var(--muted));font-size:.85rem}
+header.top .brand h1{color:var(--headertext, var(--title))}
 nav.tabs{display:flex;gap:4px;flex-wrap:wrap}
-.tab{font-family:var(--display);font-weight:600;font-size:.9rem;letter-spacing:.04em;text-transform:uppercase;background:none;border:1px solid transparent;color:var(--muted);padding:7px 12px;border-radius:8px;cursor:pointer}
+.tab{font-family:var(--display);font-weight:600;font-size:.9rem;letter-spacing:.04em;text-transform:uppercase;background:none;border:1px solid transparent;color:var(--headertext, var(--muted));padding:7px 12px;border-radius:8px;cursor:pointer}
 .tab:hover{color:var(--fg);background:var(--surface-2)}
 .tab[aria-selected="true"]{color:var(--accent);border-color:var(--line);background:var(--surface-2)}
 button,input,textarea,select{font:inherit;color:inherit}
@@ -162,7 +163,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
 .roul-hist div{display:flex;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:.92rem}
 .roul-hist b{font-family:var(--display);font-variant-numeric:tabular-nums}
 .inline-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
-.plink{background:none;border:none;padding:0;color:var(--accent);font-weight:700;cursor:pointer;text-align:left}
+.plink{background:none;border:none;padding:0;color:var(--pname, var(--accent));font-weight:700;cursor:pointer;text-align:left}
 .plink:hover{text-decoration:underline}
 .lvchips{display:flex;flex-wrap:wrap;gap:6px}
 .lvchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface-2);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:.9rem;max-width:100%;text-align:left}
@@ -172,6 +173,32 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
 .av{position:relative;display:inline-grid;place-items:center;flex:none;border-radius:50%;overflow:hidden;background:var(--accent-soft);color:var(--accent);font-family:var(--display);font-weight:700;border:1px solid var(--line)}
 .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .pcell{display:inline-flex;align-items:center;gap:10px}
+.tab .badge{display:inline-block;min-width:18px;padding:0 5px;margin-left:5px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-size:.72rem;line-height:18px;text-align:center}
+.acct{display:flex;gap:8px;align-items:center}
+.acct .me{display:inline-flex;align-items:center;gap:8px;max-width:180px}
+.acct .me span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.phero{position:relative;overflow:hidden}
+.phero.has-banner{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);padding:0}
+.phero.has-banner .pbody{padding:18px;min-width:0}
+.pbanner{align-self:stretch;background:var(--img) center/cover no-repeat;min-height:180px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 35%);mask-image:linear-gradient(90deg,transparent,#000 35%)}
+@media (max-width:640px){.phero.has-banner{grid-template-columns:minmax(0,1fr)}.pbanner{order:-1;min-height:120px;-webkit-mask-image:linear-gradient(180deg,#000 55%,transparent);mask-image:linear-gradient(180deg,#000 55%,transparent)}}
+.pbio{white-space:pre-line;overflow-wrap:anywhere;margin:10px 0 0;max-width:62ch}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-bottom:14px}
+.seg button{border:none;background:var(--surface-2);padding:8px 14px;cursor:pointer;font-weight:700}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.sendgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,300px);gap:16px;align-items:start}
+@media (max-width:760px){.sendgrid{grid-template-columns:minmax(0,1fr)}}
+.subitem{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 12px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.subitem .stxt{min-width:0}
+.subitem .sl{font-family:var(--display);font-weight:700;color:var(--title);overflow-wrap:anywhere}
+.subitem .sm{font-size:.85rem;color:var(--muted);overflow-wrap:anywhere}
+.subitem .sacts{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.subitem .warn{color:var(--warn);font-size:.85rem}
+.sublist{display:flex;flex-direction:column;gap:10px}
+.drag{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;padding:4px 8px;border-radius:7px;border:1px solid var(--line);background:var(--surface-2);font-size:1rem;line-height:1.2}
+.drag:active{cursor:grabbing}
+.row.dragging{opacity:.85;border-color:var(--accent);box-shadow:0 8px 24px rgba(0,0,0,.25);position:relative;z-index:2}
+body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
 .phead{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
 .phead .pinfo{min-width:0;flex:1 1 220px}
 .mods{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
@@ -212,8 +239,11 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
       <button class="tab" role="tab" data-tab="up" aria-selected="false">Futuros niveles</button>
       <button class="tab" role="tab" data-tab="stats" aria-selected="false">Leaderboard</button>
       <button class="tab" role="tab" data-tab="roul" aria-selected="false">Ruleta</button>
+      <button class="tab" role="tab" data-tab="send" aria-selected="false">Subir récord</button>
+      <button class="tab" role="tab" data-tab="pend" aria-selected="false" id="pendTab" hidden>Pendientes<span class="badge" id="pendBadge" hidden></span></button>
     </nav>
     <div class="top-links" id="topLinks"></div>
+    <div class="acct" id="acct"></div>
   </div>
 </header>
 
@@ -273,6 +303,9 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
   let state = { title:"Demonlist", tagline:"", about:"", discordUrl:"", submitUrl:"", mainSize:75, extSize:150, demons:[], upcoming:[], changelog:[], players:{}, mods:[] };
   let loaded = false, editing = false, password = "";
   let tab = "main", openDemon = null, openUp = null, query = "";
+  let me = null, session = "", pending = null, pendingErr = "", mySubs = null;
+  try { session = localStorage.getItem("dl_session") || ""; } catch {}
+  const cssUrl = v => esc(String(v||"").replace(/['"()\\\s<>]/g, c => "%" + c.charCodeAt(0).toString(16).padStart(2,"0")));
   try { password = sessionStorage.getItem("dl_pw") || ""; } catch {}
 
   // ---------- puntos (fórmula de Pointercrate: #1 = 350, #150 = 18.71) ----------
@@ -370,7 +403,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
   function stageOpen(d){
     if (!d.art) return `<div class="stage">`;
     const op = Math.max(0, Math.min(100, Number(d.artOpacity ?? 35))) / 100;
-    return `<div class="stage has-art" style="--art:url('${esc(d.art).replace(/'/g,"%27")}');--artop:${op}">`;
+    return `<div class="stage has-art" style="--art:url('${cssUrl(d.art)}');--artop:${op}">`;
   }
   function ytChannelUrl(v){
     v = String(v||"").trim(); if (!v) return "";
@@ -417,7 +450,9 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     ["header","--header","Barra de arriba"],
     ["surface","--surface","Cuadros (tarjetas y paneles)"],
     ["surface2","--surface-2","Cuadros internos (botones, campos, tablas)"],
-    ["line","--line","Bordes de los cuadros"]
+    ["line","--line","Bordes de los cuadros"],
+    ["headertext","--headertext","Letras de la barra de arriba"],
+    ["pname","--pname","Nombres de jugadores (por defecto)"]
   ];
   function themeColors(t){
     const c = {...(t.colors||{})};
@@ -463,7 +498,13 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
 
   // ---------- fotos de perfil ----------
   const pkey = name => String(name||"").trim().toLowerCase();
-  function playerInfo(name){ return (state.players||{})[pkey(name)] || {}; }
+  function playerInfo(name){
+    const k = pkey(name), base = (state.players||{})[k] || {}, own = (state.profiles||{})[k] || {};
+    const out = {...base};
+    for (const f of ["avatar","youtube","nameColor","banner","bio"]) if (own[f]) out[f] = own[f];
+    return out;
+  }
+  const nameStyle = name => { const c = playerInfo(name).nameColor; return /^#[0-9a-f]{6}$/i.test(c||"") ? ` style="color:${c}"` : ""; };
   function playerAvatar(name){
     const i = playerInfo(name);
     if (i.avatar) return i.avatar;
@@ -498,7 +539,8 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
   }
   async function uploadImage(file){
     const body = await shrink(file);
-    const r = await fetch("/api/upload", {method:"POST", headers:{"content-type": body.type || file.type, "x-admin-password": password}, body});
+    const auth = editing ? {"x-admin-password": password} : {"x-session": session};
+    const r = await fetch("/api/upload", {method:"POST", headers:{"content-type": body.type || file.type, ...auth}, body});
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.error || "Error " + r.status);
     return d.url;
@@ -536,6 +578,11 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
       (state.discordUrl ? `<a class="btn" href="${esc(state.discordUrl)}" target="_blank" rel="noopener">Discord</a>` : "") +
       (state.submitUrl ? `<a class="btn primary" href="${esc(state.submitUrl)}" target="_blank" rel="noopener">Subir récord</a>` : "");
     document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === tab && !openDemon && !openPlayer && !openUp)));
+    renderAccount();
+    $("#pendTab").hidden = !editing;
+    if (!editing && tab === "pend") tab = "main";
+    const pc = pending ? pending.length : 0;
+    $("#pendBadge").hidden = !pc; $("#pendBadge").textContent = pc;
     renderChangelog();
     renderMods();
     $("#clEdit").hidden = !editing;
@@ -550,6 +597,8 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     if (tab === "up"){ v.innerHTML = upListHTML(); bindUpList(); return; }
     if (tab === "stats"){ v.innerHTML = statsHTML(); bindPlayerLinks(); return; }
     if (tab === "roul"){ v.innerHTML = roulHTML(); bindRoul(); return; }
+    if (tab === "send"){ v.innerHTML = sendHTML(); bindSend(); return; }
+    if (tab === "pend"){ v.innerHTML = pendHTML(); bindPend(); return; }
     v.innerHTML = listHTML();
     bindList();
   }
@@ -569,6 +618,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     for (const {d,pos} of items){
       const pc = pos<=3 ? " p"+pos : "";
       const tools = editing ? `<div class="edit-tools" data-stop>
+          ${q ? "" : `<span class="drag" data-drag="${d.id}" title="Arrastra para mover" aria-label="Arrastrar para mover">⠿</span>`}
           <button class="ibtn" data-act="up" data-id="${d.id}" ${pos===1?"disabled":""} aria-label="Subir">▲</button>
           <button class="ibtn" data-act="down" data-id="${d.id}" ${pos===state.demons.length?"disabled":""} aria-label="Bajar">▼</button>
           <button class="ibtn" data-act="edit" data-id="${d.id}">Editar</button></div>` :
@@ -602,6 +652,45 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
       const arr = state.demons.slice(); [arr[i],arr[j]] = [arr[j],arr[i]];
       save({...state, demons:arr}, {log:true});
     }));
+    document.querySelectorAll("[data-drag]").forEach(h => h.addEventListener("pointerdown", startDrag));
+  }
+
+  // ---------- arrastrar niveles (modo editor) ----------
+  function startDrag(e){
+    if (e.button !== undefined && e.button !== 0) return;
+    e.preventDefault(); e.stopPropagation();
+    const row = e.target.closest(".row"), list = row.parentElement;
+    const before = [...list.querySelectorAll(".row")].map(x => x.dataset.open);
+    row.classList.add("dragging"); document.body.classList.add("is-dragging");
+    let lastY = e.clientY, scrollTimer = null;
+    const place = y => {
+      const rows = [...list.querySelectorAll(".row")].filter(x => x !== row);
+      let target = null;
+      for (const x of rows){ const b = x.getBoundingClientRect(); if (y < b.top + b.height/2){ target = x; break; } }
+      if (target) { if (row.nextElementSibling !== target) list.insertBefore(row, target); }
+      else if (list.lastElementChild !== row) list.appendChild(row);
+    };
+    const edgeScroll = () => {
+      const h = window.innerHeight, m = 70;
+      if (lastY < m) window.scrollBy(0, -14); else if (lastY > h - m) window.scrollBy(0, 14); else return;
+      place(lastY);
+    };
+    scrollTimer = setInterval(edgeScroll, 30);
+    const move = ev => { lastY = ev.clientY; place(ev.clientY); };
+    const end = () => {
+      clearInterval(scrollTimer);
+      window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", end); window.removeEventListener("pointercancel", end);
+      row.classList.remove("dragging"); document.body.classList.remove("is-dragging");
+      const after = [...list.querySelectorAll(".row")].map(x => x.dataset.open);
+      if (after.join() === before.join()) return;
+      // La pestaña muestra un tramo seguido de la lista: se reemplaza ese tramo con el nuevo orden
+      const start = state.demons.findIndex(d => d.id === before[0]);
+      const byId = new Map(state.demons.map(d => [d.id, d]));
+      const arr = state.demons.slice();
+      arr.splice(start, after.length, ...after.map(id => byId.get(id)));
+      save({...state, demons:arr}, {log:true});
+    };
+    window.addEventListener("pointermove", move); window.addEventListener("pointerup", end); window.addEventListener("pointercancel", end);
   }
 
   function detailHTML(){
@@ -650,7 +739,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     $("#editThis")?.addEventListener("click", () => openDemonForm(state.demons.find(d=>d.id===openDemon)));
   }
 
-  const plink = name => `<button class="plink" data-player="${esc(name)}">${esc(name)}</button>`;
+  const plink = name => `<button class="plink" data-player="${esc(name)}"${nameStyle(name)}>${esc(name)}</button>`;
   function bindPlayerLinks(){
     document.querySelectorAll("[data-player]").forEach(b => b.addEventListener("click", e => {
       e.stopPropagation(); openPlayer = b.dataset.player.toLowerCase(); openDemon = null; render(); window.scrollTo({top:0});
@@ -675,7 +764,8 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
 
   function profileHTML(){
     const rows = buildPlayers();
-    const p = rows.find(x => x.name.toLowerCase() === openPlayer);
+    let p = rows.find(x => x.name.toLowerCase() === openPlayer);
+    if (!p && me && me.k === openPlayer) p = {name: me.name, pts: 0, entries: [], rank: "—"};
     let html = `<button class="back" id="pback">← Volver al leaderboard</button>`;
     if (!p) return html + `<div class="empty"><strong>Jugador no encontrado</strong>Puede que lo hayan renombrado o quitado de la lista.</div>`;
     const listed = p.entries.filter(e => !e.upcoming);
@@ -687,7 +777,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     const hardest = by(e => e.progress >= 100)[0];
     const lvRow = (e, withPct) => {
       const src = profileImg(e.d);
-      const bg = src ? ` style="--img:url('${esc(src).replace(/'/g,"%27")}')"` : "";
+      const bg = src ? ` style="--img:url('${cssUrl(src)}')"` : "";
       const attr = e.upcoming ? `data-upopen="${e.d.id}"` : `data-demon="${e.d.id}"`;
       const label = e.upcoming ? "Futuro" : "#"+e.pos;
       const right = e.upcoming ? `${e.progress}%` : (withPct ? `${e.progress}% · ` : "") + `+${fmt(e.pts)}`;
@@ -706,16 +796,19 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
       }</div>`;
     };
     const info = playerInfo(p.name), ytUrl = ytChannelUrl(info.youtube);
-    html += `<div class="detail-hero" style="grid-template-columns:minmax(0,1fr)">
-      <div style="min-width:0">
+    const isMe = me && me.k === pkey(p.name);
+    html += `<div class="detail-hero phero${info.banner ? " has-banner" : ""}" style="grid-template-columns:${info.banner ? "" : "minmax(0,1fr)"}">
+      <div class="pbody" style="min-width:0">
        <div class="phead">
         ${avHTML(p.name, playerAvatar(p.name), 96)}
         <div class="pinfo">
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px"><span class="pos${p.rank<=3?" p"+p.rank:""}">#${p.rank}</span><span class="chip">Leaderboard</span></div>
-        <h2>${esc(p.name)}</h2>
+        <h2 class="pname"${nameStyle(p.name)}>${esc(p.name)}</h2>
+        ${info.bio ? `<p class="pbio">${esc(info.bio)}</p>` : ""}
         <div class="btn-row" style="margin-top:10px">
           ${ytUrl ? `<a class="btn" href="${esc(ytUrl)}" target="_blank" rel="noopener">Canal de YouTube ↗</a>` : ""}
-          ${editing ? `<button class="btn primary" id="editPlayer">Editar foto y canal</button>` : ""}
+          ${isMe ? `<button class="btn primary" id="editMine">Editar mi perfil</button>` : ""}
+          ${editing ? `<button class="btn" id="editPlayer">Opciones de moderador</button>` : ""}
         </div>
         </div>
        </div>
@@ -726,7 +819,7 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
           <div class="fact"><span>En progreso</span><b>${prog.length + upProg.length}</b></div>
           <div class="fact"><span>Más difícil</span><b>${hardest?esc(hardest.d.name)+` (#${hardest.pos})`:"—"}</b></div>
         </div>
-      </div></div>
+      </div>${info.banner ? `<div class="pbanner" style="--img:url('${cssUrl(info.banner)}')" aria-hidden="true"></div>` : ""}</div>
       <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px">
         ${sectionBlock("Verificados", verified, false)}
         ${sectionBlock("Completados", done, false)}
@@ -736,7 +829,8 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
   }
   function bindProfile(){
     $("#pback")?.addEventListener("click", () => { openPlayer = null; tab = "stats"; render(); });
-    $("#editPlayer")?.addEventListener("click", () => { const p = buildPlayers().find(x => x.name.toLowerCase() === openPlayer); if (p) openPlayerForm(p.name); });
+    $("#editPlayer")?.addEventListener("click", () => { const p = buildPlayers().find(x => x.name.toLowerCase() === openPlayer); openPlayerForm(p ? p.name : openPlayer); });
+    $("#editMine")?.addEventListener("click", openMyProfileForm);
     document.querySelectorAll("[data-demon]").forEach(b => b.addEventListener("click", () => {
       openDemon = b.dataset.demon; openPlayer = null; render(); window.scrollTo({top:0});
     }));
@@ -1036,10 +1130,14 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     modal(`<h3>${esc(name)}</h3><form id="pf">
       <div class="phead" style="margin-bottom:14px">${`<span id="pprev">${avHTML(name, playerAvatar(name), 72)}</span>`}
         <p class="hint" style="margin:0;flex:1 1 200px">Si pones el canal de YouTube, la foto se toma de ahí sola. Si prefieres otra, súbela abajo.</p></div>
+      ${(state.profiles||{})[k] ? `<p class="hint" style="margin-top:0">Este jugador personalizó su perfil. Lo que él puso tiene prioridad sobre lo de aquí.</p>` : ""}
       <label class="f">Canal de YouTube <span class="hint">link del canal o @usuario</span>
-        <input id="p_yt" value="${esc(info.youtube||"")}" placeholder="https://www.youtube.com/@usuario"></label>
+        <input id="p_yt" value="${esc(((state.players||{})[k]||{}).youtube||"")}" placeholder="https://www.youtube.com/@usuario"></label>
       <label class="f" style="margin-top:12px">Foto personalizada <span class="hint">opcional; reemplaza la de YouTube</span>
-        ${imgField("p_av", info.avatar, "Link de la imagen o pulsa Subir")}</label>
+        ${imgField("p_av", ((state.players||{})[k]||{}).avatar, "Link de la imagen o pulsa Subir")}</label>
+      <div class="sub">Cuenta del jugador</div>
+      <p class="hint" style="margin-top:0">Si alguien olvidó su contraseña, o otra persona tomó su nombre, borra la cuenta. Así se puede volver a crear con ese nombre. Sus récords no se tocan.</p>
+      <button type="button" class="btn danger" id="pReset">Borrar cuenta</button>
       <div class="foot"><span class="status" id="pStatus"></span>
         <button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit">Guardar</button></div></form>`, close => {
       $("#cancel").onclick = close;
@@ -1049,6 +1147,16 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
         $("#pprev").innerHTML = avHTML(name, av || (yt ? "/api/avatar?yt=" + encodeURIComponent(yt) : ""), 72);
       };
       $("#p_av").addEventListener("input", prev); $("#p_yt").addEventListener("change", prev);
+      const rb = $("#pReset");
+      rb.onclick = async () => {
+        if (!rb.dataset.confirm){ rb.dataset.confirm = "1"; rb.textContent = "¿Seguro? Pulsa otra vez"; return; }
+        $("#pStatus").textContent = "Borrando cuenta…";
+        try {
+          const r = await fetch("/api/cuenta", {method:"POST", headers:{"content-type":"application/json","x-admin-password":password}, body:JSON.stringify({action:"reset", name})});
+          const d = await r.json().catch(()=>({}));
+          $("#pStatus").textContent = r.ok ? "Cuenta borrada. Ya se puede crear de nuevo." : (d.error || "No se pudo borrar.");
+        } catch { $("#pStatus").textContent = "No hay conexión con el servidor."; }
+      };
       $("#pf").addEventListener("submit", e => {
         e.preventDefault();
         const players = {...(state.players||{})};
@@ -1109,6 +1217,330 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
     });
   }
 
+
+  // ---------- cuentas de jugadores ----------
+  async function api(url, body, method){
+    const opts = {method: method || (body ? "POST" : "GET"), headers: {}};
+    if (session) opts.headers["x-session"] = session;
+    if (body){ opts.headers["content-type"] = "application/json"; opts.body = JSON.stringify(body); }
+    const r = await fetch(url, opts);
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok){ const e = new Error(d.error || "Error " + r.status); e.status = r.status; throw e; }
+    return d;
+  }
+  function setSession(token, name){
+    session = token; me = {name, k: pkey(name)};
+    try { localStorage.setItem("dl_session", token); } catch {}
+  }
+  function clearSession(){
+    session = ""; me = null; mySubs = null;
+    try { localStorage.removeItem("dl_session"); } catch {}
+  }
+  async function playerLogout(){
+    try { await api("/api/cuenta", {action:"logout"}); } catch {}
+    clearSession(); if (tab === "send") render(); else render();
+  }
+  function renderAccount(){
+    $("#acct").innerHTML = me
+      ? `<button class="btn me" id="acctMe" title="Ver mi perfil">${avHTML(me.name, playerAvatar(me.name), 24)}<span>${esc(me.name)}</span></button>
+         <button class="btn" id="acctOut">Salir</button>`
+      : `<button class="btn" id="acctLogin">Iniciar sesión</button>`;
+  }
+  function knownNames(){
+    const names = new Map();
+    buildPlayers().forEach(p => names.set(pkey(p.name), p.name));
+    return [...names.values()].sort((a,b) => a.localeCompare(b));
+  }
+  function openAccountLogin(mode){
+    mode = mode || "login";
+    modal(`<h3>Tu cuenta</h3>
+      <div class="seg" role="group" aria-label="Elegir">
+        <button type="button" data-mode="login" aria-pressed="${mode==="login"}">Iniciar sesión</button>
+        <button type="button" data-mode="register" aria-pressed="${mode==="register"}">Crear cuenta</button>
+      </div>
+      <form id="af">
+        <label class="f">Tu nombre de jugador
+          <input id="a_name" list="a_names" autocomplete="username" required maxlength="40" placeholder="Escribe tu nombre tal como sale en la lista"></label>
+        <datalist id="a_names">${knownNames().map(n => `<option value="${esc(n)}">`).join("")}</datalist>
+        <p class="hint" id="a_hint" style="margin:6px 0 0"></p>
+        <label class="f" style="margin-top:12px">Contraseña
+          <input id="a_pw" type="password" autocomplete="current-password" required minlength="6"></label>
+        <label class="f" style="margin-top:12px" id="a_pw2w">Repite la contraseña
+          <input id="a_pw2" type="password" autocomplete="new-password" minlength="6"></label>
+        <div class="foot"><span class="status err" id="aStatus"></span>
+          <button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit" id="aGo">Entrar</button></div>
+      </form>`, close => {
+      $("#cancel").onclick = close;
+      const setMode = m => {
+        mode = m;
+        document.querySelectorAll("[data-mode]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === m)));
+        $("#a_pw2w").hidden = m !== "register";
+        $("#a_pw").autocomplete = m === "register" ? "new-password" : "current-password";
+        $("#aGo").textContent = m === "register" ? "Crear cuenta" : "Entrar";
+        $("#a_hint").textContent = m === "register"
+          ? "Si ya tienes récords en la lista, escribe tu nombre exactamente igual para que tu cuenta quede unida a ellos."
+          : "";
+        $("#aStatus").textContent = "";
+      };
+      document.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => setMode(b.dataset.mode));
+      setMode(mode);
+      $("#af").addEventListener("submit", async e => {
+        e.preventDefault();
+        const name = $("#a_name").value.trim(), pw = $("#a_pw").value;
+        if (mode === "register" && pw !== $("#a_pw2").value){ $("#aStatus").textContent = "Las contraseñas no coinciden."; return; }
+        $("#aStatus").textContent = mode === "register" ? "Creando cuenta…" : "Entrando…";
+        try {
+          const d = await api("/api/cuenta", {action: mode, name, password: pw});
+          setSession(d.token, d.name);
+          close(); render();
+          setStatus("");
+        } catch (err) { $("#aStatus").textContent = err.message; }
+      });
+    });
+  }
+  function openMyProfileForm(){
+    if (!me) return openAccountLogin();
+    const own = (state.profiles||{})[me.k] || {}, cur = playerInfo(me.name);
+    const color = own.nameColor || "#ff4d62";
+    modal(`<h3>Mi perfil</h3><form id="mpf">
+      <div class="phead" style="margin-bottom:14px"><span id="mprev">${avHTML(me.name, playerAvatar(me.name), 72)}</span>
+        <div style="flex:1 1 200px;min-width:0"><b id="mname" style="font-family:var(--display);font-size:1.3rem;${own.nameColor?`color:${own.nameColor}`:""}">${esc(me.name)}</b>
+        <p class="hint" style="margin:4px 0 0">Así se verá tu nombre en el leaderboard.</p></div></div>
+      <div class="grid2">
+        <label class="f">Color de tu nombre
+          <span style="display:flex;gap:8px;align-items:center">
+            <input id="mp_col" type="color" value="${esc(color)}" style="width:56px;height:38px;padding:2px">
+            <label class="hint" style="display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox" id="mp_colDef" ${own.nameColor?"":"checked"}> Por defecto</label>
+          </span></label>
+        <label class="f">Canal de YouTube <span class="hint">link o @usuario</span>
+          <input id="mp_yt" value="${esc(own.youtube||"")}" placeholder="https://www.youtube.com/@usuario"></label>
+      </div>
+      <label class="f" style="margin-top:12px">Foto de perfil <span class="hint">si la dejas vacía se usa la de tu canal</span>
+        ${imgField("mp_av", own.avatar, "Link de la imagen o pulsa Subir")}</label>
+      <label class="f" style="margin-top:12px">Imagen de portada <span class="hint">sale a la derecha de tu perfil, ocupando un tercio</span>
+        ${imgField("mp_ban", own.banner, "Link de la imagen o pulsa Subir")}</label>
+      <label class="f" style="margin-top:12px">Descripción <span class="hint"><span id="mp_bioc">${(own.bio||"").length}</span>/400</span>
+        <textarea id="mp_bio" rows="3" maxlength="400" placeholder="Cuéntale algo a la gente: tu nivel favorito, tu canal, desde cuándo juegas…">${esc(own.bio||"")}</textarea></label>
+      <details style="margin-top:14px"><summary class="hint" style="cursor:pointer;font-weight:700">Cambiar contraseña</summary>
+        <div class="grid2" style="margin-top:10px">
+          <label class="f">Contraseña actual<input id="mp_pw" type="password" autocomplete="current-password"></label>
+          <label class="f">Nueva contraseña<input id="mp_pw2" type="password" autocomplete="new-password" minlength="6"></label>
+        </div>
+        <button type="button" class="btn" id="mp_pwGo" style="margin-top:8px">Cambiar contraseña</button>
+      </details>
+      <div class="foot"><span class="status" id="mpStatus"></span>
+        <button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit">Guardar</button></div></form>`, close => {
+      $("#cancel").onclick = close;
+      bindUploads($("#mpStatus"));
+      const prev = () => {
+        const av = $("#mp_av").value.trim(), yt = $("#mp_yt").value.trim();
+        $("#mprev").innerHTML = avHTML(me.name, av || (yt ? "/api/avatar?yt=" + encodeURIComponent(yt) : (cur.avatar||"")), 72);
+        $("#mname").style.color = $("#mp_colDef").checked ? "" : $("#mp_col").value;
+      };
+      $("#mp_col").addEventListener("input", () => { $("#mp_colDef").checked = false; prev(); });
+      $("#mp_colDef").addEventListener("change", prev);
+      $("#mp_av").addEventListener("input", prev); $("#mp_yt").addEventListener("change", prev);
+      $("#mp_bio").addEventListener("input", e => $("#mp_bioc").textContent = e.target.value.length);
+      $("#mp_pwGo").onclick = async () => {
+        $("#mpStatus").textContent = "Cambiando contraseña…";
+        try { await api("/api/cuenta", {action:"password", password:$("#mp_pw").value, newPassword:$("#mp_pw2").value});
+          $("#mpStatus").textContent = "Contraseña cambiada."; $("#mp_pw").value = $("#mp_pw2").value = ""; }
+        catch (err) { $("#mpStatus").textContent = err.message; }
+      };
+      $("#mpf").addEventListener("submit", async e => {
+        e.preventDefault();
+        const profile = { nameColor: $("#mp_colDef").checked ? "" : $("#mp_col").value, youtube: $("#mp_yt").value.trim(),
+          avatar: $("#mp_av").value.trim(), banner: $("#mp_ban").value.trim(), bio: $("#mp_bio").value };
+        $("#mpStatus").textContent = "Guardando…";
+        try {
+          const d = await api("/api/cuenta", {action:"profile", profile});
+          state.profiles = {...(state.profiles||{}), [me.k]: d.profile};
+          close(); render();
+        } catch (err) {
+          $("#mpStatus").textContent = err.status === 401 ? "Tu sesión terminó. Vuelve a iniciar sesión." : "No se guardó: " + err.message;
+          if (err.status === 401){ clearSession(); render(); }
+        }
+      });
+    });
+  }
+
+  // ---------- subir récords (jugadores) ----------
+  let sendKind = "list";
+  function levelOptions(){
+    const groups = [["main","Lista principal"],["ext","Lista extendida"],["leg","Legacy"]];
+    return groups.map(([k,label]) => {
+      const items = state.demons.map((d,i) => ({d,pos:i+1})).filter(x => section(x.pos) === k);
+      return items.length ? `<optgroup label="${label}">${items.map(({d,pos}) => `<option value="${esc(d.id)}">#${pos} · ${esc(d.name)}</option>`).join("")}</optgroup>` : "";
+    }).join("");
+  }
+  function levelRule(id){
+    const i = state.demons.findIndex(d => d.id === id); if (i < 0) return {min:100, text:""};
+    const d = state.demons[i], pos = i+1, req = reqFor(d,pos);
+    if (pos <= state.mainSize && req < 100) return {min:req, text:`Este nivel acepta progresos desde ${req}% (list%) o el 100%.`};
+    return {min:100, text: pos <= state.mainSize ? "En este nivel solo cuenta el 100%." : "Fuera de la lista principal solo cuenta el 100%."};
+  }
+  function sendHTML(){
+    let html = `<div class="section-head"><h2>Subir récord</h2><span class="count">Un moderador lo revisa antes de que salga en la lista</span></div>`;
+    if (!me) return html + `<div class="empty"><strong>Inicia sesión para enviar récords</strong>Si ya apareces en la lista, crea tu cuenta con tu mismo nombre.<div class="btn-row" style="justify-content:center;margin-top:12px"><button class="btn primary" id="sLogin">Iniciar sesión</button><button class="btn" id="sReg">Crear cuenta</button></div></div>`;
+    const ups = state.upcoming || [];
+    html += `<div class="sendgrid"><form class="panel" id="sf2">
+      <div class="seg" role="group" aria-label="Tipo de nivel">
+        <button type="button" data-kind="list" aria-pressed="${sendKind==="list"}">Nivel de la lista</button>
+        <button type="button" data-kind="up" aria-pressed="${sendKind==="up"}">Futuro nivel</button>
+      </div>
+      <label class="f">Nivel
+        <select id="s_lv" required>${sendKind === "list" ? levelOptions() : ups.map(u => `<option value="${esc(u.id)}">${esc(u.name)}</option>`).join("")}</select></label>
+      <p class="hint" id="s_rule" style="margin:6px 0 0"></p>
+      <div class="grid2" style="margin-top:12px">
+        <label class="f">Progreso (%)<input id="s_pr" type="number" min="1" max="100" required value="100"></label>
+        <label class="f">Jugador<input value="${esc(me.name)}" disabled></label>
+      </div>
+      <label class="f" style="margin-top:12px">Link del video de YouTube
+        <input id="s_vid" type="url" required placeholder="https://www.youtube.com/watch?v=…"></label>
+      <label class="f" style="margin-top:12px">Nota para los moderadores <span class="hint">opcional</span>
+        <input id="s_note" maxlength="80" placeholder="Ej. el raw footage está en la descripción"></label>
+      <div class="foot"><span class="status" id="s_st"></span><button class="btn primary" type="submit">Enviar récord</button></div>
+    </form>
+    <div class="panel"><h3>Tus envíos pendientes</h3><div id="mySubs"><p class="hint" style="margin:0">Cargando…</p></div></div></div>`;
+    return html;
+  }
+  function mySubsHTML(){
+    if (!mySubs) return `<p class="hint" style="margin:0">Cargando…</p>`;
+    if (!mySubs.length) return `<p class="hint" style="margin:0">No tienes envíos esperando revisión.</p>`;
+    return `<div class="sublist">${mySubs.map(x => `<div class="subitem" style="grid-template-columns:minmax(0,1fr)"><div class="stxt">
+      <div class="sl">${esc(x.levelName)} · ${x.progress}%</div>
+      <div class="sm">${x.kind === "up" ? "Futuro nivel · " : ""}enviado ${new Date(x.date).toLocaleDateString("es")}</div></div>
+      <div class="sacts"><a href="${esc(x.video)}" target="_blank" rel="noopener">Video ↗</a><button class="ibtn" data-cancel="${esc(x.id)}">Cancelar envío</button></div></div>`).join("")}</div>`;
+  }
+  async function loadMySubs(){
+    try { mySubs = (await api("/api/envios")).items; }
+    catch (e){ mySubs = []; if (e.status === 401){ clearSession(); render(); return; } }
+    const box = $("#mySubs"); if (box){ box.innerHTML = mySubsHTML(); bindMySubs(); }
+  }
+  function bindMySubs(){
+    document.querySelectorAll("[data-cancel]").forEach(b => b.onclick = async () => {
+      if (!b.dataset.confirm){ b.dataset.confirm = "1"; b.textContent = "¿Seguro?"; return; }
+      try { await api("/api/envios?id=" + encodeURIComponent(b.dataset.cancel), null, "DELETE"); } catch {}
+      loadMySubs();
+    });
+  }
+  function bindSend(){
+    $("#sLogin")?.addEventListener("click", () => openAccountLogin("login"));
+    $("#sReg")?.addEventListener("click", () => openAccountLogin("register"));
+    if (!me) return;
+    document.querySelectorAll("[data-kind]").forEach(b => b.onclick = () => { sendKind = b.dataset.kind; render(); });
+    const sel = $("#s_lv"), pr = $("#s_pr");
+    const upd = () => {
+      if (sendKind === "up"){ $("#s_rule").textContent = (state.upcoming||[]).length ? "Pon el porcentaje que llevas en este nivel." : "Todavía no hay futuros niveles."; pr.min = 1; return; }
+      const rule = levelRule(sel.value); $("#s_rule").textContent = rule.text; pr.min = rule.min;
+      if (+pr.value < rule.min) pr.value = rule.min === 100 ? 100 : rule.min;
+    };
+    sel.addEventListener("change", upd); upd();
+    $("#mySubs").innerHTML = mySubsHTML(); bindMySubs();
+    if (!mySubs) loadMySubs();
+    $("#sf2").addEventListener("submit", async e => {
+      e.preventDefault();
+      const st = $("#s_st"), progress = Math.round(+pr.value);
+      let levelName = "";
+      if (sendKind === "list"){
+        const d = state.demons.find(x => x.id === sel.value); if (!d){ st.textContent = "Elige un nivel."; return; }
+        const rule = levelRule(d.id);
+        if (progress < 100 && progress < rule.min){ st.textContent = rule.text; return; }
+        levelName = d.name;
+      } else {
+        const u = (state.upcoming||[]).find(x => x.id === sel.value); if (!u){ st.textContent = "Elige un nivel."; return; }
+        levelName = u.name;
+      }
+      st.textContent = "Enviando…";
+      try {
+        await api("/api/envios", {kind: sendKind, levelId: sel.value, levelName, progress, video: $("#s_vid").value.trim(), note: $("#s_note").value.trim()});
+        st.textContent = "¡Enviado! Un moderador lo revisará pronto.";
+        $("#s_vid").value = ""; $("#s_note").value = "";
+        loadMySubs();
+      } catch (err) {
+        st.textContent = err.message;
+        if (err.status === 401){ clearSession(); render(); }
+      }
+    });
+  }
+
+  // ---------- pendientes (moderadores) ----------
+  async function loadPending(){
+    if (!editing) return;
+    try {
+      const r = await fetch("/api/envios", {headers:{"x-admin-password": password}, cache:"no-store"});
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || "Error " + r.status);
+      pending = d.items; pendingErr = "";
+    } catch (e) { pendingErr = e.message; if (!pending) pending = []; }
+    render();
+  }
+  function subTarget(x){
+    if (x.kind === "up"){
+      const u = (state.upcoming||[]).find(y => y.id === x.levelId);
+      return u ? {u, text: u.player ? `Ahora: ${u.player} con ${clampPct(u.progress)}%` : "Nadie tiene progreso registrado"} : null;
+    }
+    const i = state.demons.findIndex(d => d.id === x.levelId); if (i < 0) return null;
+    const d = state.demons[i], cur = (d.records||[]).find(r => pkey(r.player) === pkey(x.player));
+    const verif = pkey(d.verifier) === pkey(x.player);
+    return {d, pos:i+1, text: verif ? "Este jugador es el verificador del nivel" : cur ? `Ya tiene ${cur.progress}% en este nivel` : "Récord nuevo para este jugador"};
+  }
+  function pendHTML(){
+    let html = `<div class="section-head"><h2>Récords pendientes</h2><span class="count">${pending ? pending.length : 0} por revisar</span>
+      <button class="btn" id="pRefresh" style="margin-left:auto">Actualizar</button></div>`;
+    if (pendingErr) html += `<p class="status err">No se pudieron cargar: ${esc(pendingErr)}</p>`;
+    if (!pending) return html + `<div class="empty"><strong>Cargando envíos</strong></div>`;
+    if (!pending.length) return html + `<div class="empty"><strong>No hay récords pendientes</strong>Cuando un jugador envíe uno, aparecerá aquí.</div>`;
+    return html + `<div class="sublist">${pending.map(x => {
+      const t = subTarget(x);
+      const where = !t ? "" : x.kind === "up" ? "Futuro nivel" : `#${t.pos} · ${section(t.pos)==="main"?"Lista principal":section(t.pos)==="ext"?"Lista extendida":"Legacy"}`;
+      return `<div class="subitem">${avHTML(x.player, playerAvatar(x.player), 40)}<div class="stxt">
+        <div class="sl">${plink(x.player)} · ${esc(x.levelName)} · ${x.progress}%</div>
+        <div class="sm">${where ? esc(where) + " · " : ""}enviado ${new Date(x.date).toLocaleString("es")}</div>
+        ${t ? `<div class="sm">${esc(t.text)}</div>` : `<div class="warn">Ese nivel ya no existe en la lista. Solo se puede rechazar.</div>`}
+        ${x.note ? `<div class="sm">Nota: “${esc(x.note)}”</div>` : ""}</div>
+        <div class="sacts"><a class="btn" href="${esc(x.video)}" target="_blank" rel="noopener">Ver video ↗</a>
+          ${t ? `<button class="btn primary" data-accept="${esc(x.id)}">Aceptar</button>` : ""}
+          <button class="btn danger" data-reject="${esc(x.id)}">Rechazar</button></div></div>`;
+    }).join("")}</div>`;
+  }
+  async function dropSub(id){
+    const r = await fetch("/api/envios?id=" + encodeURIComponent(id), {method:"DELETE", headers:{"x-admin-password": password}});
+    if (!r.ok) throw new Error("No se pudo quitar de pendientes.");
+    pending = (pending||[]).filter(x => x.id !== id);
+  }
+  function bindPend(){
+    bindPlayerLinks();
+    $("#pRefresh")?.addEventListener("click", () => { pending = null; render(); loadPending(); });
+    document.querySelectorAll("[data-reject]").forEach(b => b.onclick = async () => {
+      if (!b.dataset.confirm){ b.dataset.confirm = "1"; b.textContent = "¿Seguro?"; return; }
+      b.disabled = true;
+      try { await dropSub(b.dataset.reject); setStatus("Envío rechazado."); } catch (e) { setStatus(e.message, "err"); }
+      render();
+    });
+    document.querySelectorAll("[data-accept]").forEach(b => b.onclick = async () => {
+      const x = (pending||[]).find(y => y.id === b.dataset.accept); if (!x) return;
+      const t = subTarget(x); if (!t) return;
+      b.disabled = true;
+      let next;
+      if (x.kind === "up"){
+        next = {...state, upcoming: state.upcoming.map(u => u.id === x.levelId ? {...u, player:x.player, progress:x.progress, video:x.video} : u)};
+      } else {
+        next = {...state, demons: state.demons.map(d => {
+          if (d.id !== x.levelId) return d;
+          const recs = (d.records||[]).slice(), i = recs.findIndex(r => pkey(r.player) === pkey(x.player));
+          if (i < 0) recs.push({player:x.player, progress:x.progress, video:x.video});
+          else if (x.progress >= (+recs[i].progress||0)) recs[i] = {...recs[i], progress:x.progress, video:x.video};
+          return {...d, records:recs};
+        })};
+      }
+      const ok = await save(next);
+      if (!ok){ b.disabled = false; return; }
+      try { await dropSub(x.id); setStatus(`Récord de ${x.player} aceptado.`, "ok"); } catch (e) { setStatus(e.message, "err"); }
+      render();
+    });
+  }
+
   // ---------- guardar ----------
   let saving = Promise.resolve();
   function setStatus(msg, cls=""){ const s=$("#saveStatus"); s.textContent=msg; s.className="status "+cls; }
@@ -1159,12 +1591,12 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
           if (!r.ok){ $("#lStatus").textContent = "Contraseña incorrecta."; return; }
           password = pw; editing = true;
           try { sessionStorage.setItem("dl_pw", pw); } catch {}
-          close(); setStatus("Modo editor activo."); render();
+          close(); setStatus("Modo editor activo."); render(); loadPending();
         } catch { $("#lStatus").textContent = "No hay conexión con el servidor."; }
       });
     });
   }
-  function logout(){ editing = false; password = ""; try { sessionStorage.removeItem("dl_pw"); } catch {} setStatus(""); render(); }
+  function logout(){ editing = false; password = ""; pending = null; try { sessionStorage.removeItem("dl_pw"); } catch {} setStatus(""); render(); }
 
   function recRow(r={player:"",progress:100,video:""}){
     return `<div class="rec-edit"><input placeholder="Jugador" value="${esc(r.player)}" data-k="player" aria-label="Jugador">
@@ -1337,8 +1769,15 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
   $("#clAll").onclick = openChangelogAll;
   $("#clEdit").onclick = openChangelogEditor;
   $("#modEdit").onclick = openModsEditor;
+  $("#acct").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.id === "acctLogin") openAccountLogin();
+    if (b.id === "acctMe"){ openPlayer = me.k; openDemon = openUp = null; render(); window.scrollTo({top:0}); }
+    if (b.id === "acctOut") playerLogout();
+  });
 
   async function boot(){
+    const meReq = session ? api("/api/cuenta", {action:"me"}).then(d => { me = {name:d.name, k:pkey(d.name)}; }).catch(e => { if (e.status === 401) clearSession(); }) : null;
     if (password){
       try { const r = await fetch("/api/login",{method:"POST",headers:{"x-admin-password":password}}); editing = r.ok; if (!r.ok) logout(); } catch {}
     }
@@ -1352,7 +1791,10 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
       state.changelog = Array.isArray(state.changelog) ? state.changelog : [];
       state.mods = Array.isArray(state.mods) ? state.mods : [];
       state.players = (state.players && typeof state.players === "object" && !Array.isArray(state.players)) ? state.players : {};
+      state.profiles = (state.profiles && typeof state.profiles === "object" && !Array.isArray(state.profiles)) ? state.profiles : {};
+      if (meReq) await meReq;
       loaded = true; render();
+      if (editing) loadPending();
     } catch (err) {
       loaded = true; render();
       $("#view").innerHTML = `<div class="empty"><strong>No se pudo cargar la lista</strong>${esc(err.message || "Revisa tu conexión y recarga la página.")}</div>`;
