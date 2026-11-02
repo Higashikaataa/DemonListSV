@@ -32,9 +32,12 @@ const json = (obj, status = 200) =>
 
 export async function onRequestGet({ env }) {
   if (!env.LIST) return json({ error: "Falta vincular el KV con el nombre LIST." }, 500);
-  const data = await env.LIST.get("main");
-  if (!data) return json(DEFAULT);
-  return new Response(data, {
+  const [data, profiles] = await Promise.all([env.LIST.get("main"), env.LIST.get("profiles")]);
+  // Los perfiles que editan los propios jugadores se guardan aparte ("profiles")
+  // para que un guardado del editor nunca los borre.
+  const prof = profiles || "{}";
+  if (!data) return json({ ...DEFAULT, profiles: JSON.parse(prof) });
+  return new Response(data.replace(/\}\s*$/, ',"profiles":' + prof + "}"), {
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }
   });
 }
@@ -50,6 +53,7 @@ export async function onRequestPut({ request, env }) {
   let data;
   try { data = JSON.parse(body); } catch { return json({ error: "JSON no válido." }, 400); }
   if (!data || !Array.isArray(data.demons)) return json({ error: "Falta la lista de demons." }, 400);
+  delete data.profiles; // los perfiles de jugadores no se guardan desde el editor
 
   await env.LIST.put("main", JSON.stringify(data));
   return json({ ok: true });

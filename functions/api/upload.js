@@ -1,4 +1,4 @@
-// POST /api/upload  -> guarda una imagen (solo admin) y devuelve su link
+// POST /api/upload  -> guarda una imagen (moderadores o jugadores con sesión) y devuelve su link
 // Las imágenes se guardan en el mismo KV (LIST) con el prefijo "img:".
 const MAX = 5 * 1024 * 1024; // 5 MB
 
@@ -7,8 +7,13 @@ const json = (obj, status = 200) =>
 
 export async function onRequestPost({ request, env }) {
   if (!env.LIST) return json({ error: "Falta vincular el KV con el nombre LIST." }, 500);
-  if (!env.ADMIN_PASSWORD || request.headers.get("x-admin-password") !== env.ADMIN_PASSWORD)
-    return json({ error: "Contraseña incorrecta." }, 401);
+  // Pueden subir los moderadores (contraseña del editor) o un jugador con sesión iniciada
+  const admin = !!env.ADMIN_PASSWORD && request.headers.get("x-admin-password") === env.ADMIN_PASSWORD;
+  if (!admin) {
+    const t = request.headers.get("x-session") || "";
+    const k = /^[a-f0-9]{64}$/.test(t) ? await env.LIST.get("session:" + t) : null;
+    if (!k) return json({ error: "Inicia sesión para subir imágenes." }, 401);
+  }
 
   const type = (request.headers.get("content-type") || "").split(";")[0].trim();
   if (!/^image\/(png|jpeg|webp|gif)$/.test(type)) return json({ error: "Solo se aceptan imágenes PNG, JPG, WEBP o GIF." }, 415);
