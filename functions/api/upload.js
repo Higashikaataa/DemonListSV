@@ -11,8 +11,10 @@ export async function onRequestPost({ request, env }) {
   const admin = !!env.ADMIN_PASSWORD && request.headers.get("x-admin-password") === env.ADMIN_PASSWORD;
   if (!admin) {
     const t = request.headers.get("x-session") || "";
-    const k = /^[a-f0-9]{64}$/.test(t) ? await env.LIST.get("session:" + t) : null;
-    if (!k) return json({ error: "Inicia sesión para subir imágenes." }, 401);
+    const v = /^[a-f0-9]{64}$/.test(t) ? await env.LIST.get("session:" + t) : null;
+    const [k, sid] = (v || "").split("|");
+    const u = k ? await env.LIST.get("user:" + k, "json") : null;
+    if (!u || (sid ? u.sid !== sid : !!u.sid)) return json({ error: "Inicia sesión para subir imágenes." }, 401);
   }
 
   const type = (request.headers.get("content-type") || "").split(";")[0].trim();

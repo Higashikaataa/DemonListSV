@@ -13,13 +13,17 @@ const json = (obj, status = 200) =>
 
 const MAX_PENDING = 25;
 
+// La sesión guarda "nombre|sid". Si la cuenta se borra y alguien la vuelve a crear,
+// tendrá otro sid y las sesiones viejas ya no sirven.
 async function sessionUser(request, env) {
   const t = request.headers.get("x-session") || "";
   if (!/^[a-f0-9]{64}$/.test(t)) return null;
-  const k = await env.LIST.get("session:" + t);
-  if (!k) return null;
+  const v = await env.LIST.get("session:" + t);
+  if (!v) return null;
+  const [k, sid] = v.split("|");
   const u = await env.LIST.get("user:" + k, "json");
-  return u ? { k, name: u.name } : null;
+  if (!u || (sid ? u.sid !== sid : !!u.sid)) return null;
+  return { k, name: u.name, token: t, user: u };
 }
 const isAdmin = (request, env) => !!env.ADMIN_PASSWORD && request.headers.get("x-admin-password") === env.ADMIN_PASSWORD;
 const prefixFor = k => "sub:" + encodeURIComponent(k) + ":";

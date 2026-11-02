@@ -35,9 +35,9 @@ function sameStr(a, b) {
   let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return d === 0;
 }
-async function newSession(env, k) {
+async function newSession(env, k, sid) {
   const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
-  await env.LIST.put("session:" + token, k, { expirationTtl: SESSION_TTL });
+  await env.LIST.put("session:" + token, sid ? k + "|" + sid : k, { expirationTtl: SESSION_TTL });
   return token;
 }
 // Índice de nombres con cuenta, para que salgan en el leaderboard aunque no tengan récords
@@ -53,14 +53,20 @@ async function removeAccount(env, k) {
   if (next.length !== list.length) await env.LIST.put("accounts", JSON.stringify(next));
 }
 
+// La sesión guarda "nombre|sid". Si la cuenta se borra y alguien la vuelve a crear,
+// tendrá otro sid y las sesiones viejas ya no sirven.
 async function sessionUser(request, env) {
   const t = request.headers.get("x-session") || "";
   if (!/^[a-f0-9]{64}$/.test(t)) return null;
-  const k = await env.LIST.get("session:" + t);
-  if (!k) return null;
+  const v = await env.LIST.get("session:" + t);
+  if (!v) return null;
+  const [k, sid] = v.split("|");
   const u = await env.LIST.get("user:" + k, "json");
-  return u ? { k, name: u.name, token: t, user: u } : null;
+  if (!u || (sid ? u.sid !== sid : !!u.sid)) return null;
+  return { k, name: u.name, token: t, user: u };
 }
+const isAdmin = (request, env) => !!env.ADMIN_PASSWORD && request.headers.get("x-admin-password") === env.ADMIN_PASSWORD;
+async function blockedList(env) { return (await env.LIST.get("blocked", "json")) || []; }
 
 // Solo se aceptan imágenes subidas al sitio o links https
 const okImg = v => { v = String(v || "").trim(); return (/^\/api\/img\/[a-f0-9]{32}$/.test(v) || /^https:\/\/[^\s"'<>()]{4,400}$/.test(v)) ? v : ""; };
@@ -89,16 +95,46 @@ export async function onRequestPost({ request, env }) {
 
     if (action === "register") {
       if (existing) return json({ error: "Ese nombre ya tiene cuenta. Usa “Iniciar sesión”." }, 409);
+      if ((await blockedList(env)).some(n => pkey(n) === k)) return json({ error: "Ese nombre no está disponible." }, 403);
       const salt = hex(crypto.getRandomValues(new Uint8Array(16)));
-      await env.LIST.put("user:" + k, JSON.stringify({ name, salt, hash: await hashPw(pw, salt, ITER), iter: ITER, created: Date.now() }));
+      const sid = hex(crypto.getRandomValues(new Uint8Array(8)));
+      await env.LIST.put("user:" + k, JSON.stringify({ name, salt, hash: await hashPw(pw, salt, ITER), iter: ITER, sid, created: Date.now() }));
       await addAccount(env, name);
-      return json({ token: await newSession(env, k), name });
+      return json({ token: await newSession(env, k, sid), name });
     }
     if (!existing) return json({ error: "Ese nombre todavía no tiene cuenta. Usa “Crear cuenta”." }, 404);
     const h = await hashPw(pw, existing.salt, existing.iter || ITER);
     if (!sameStr(h, existing.hash)) return json({ error: "Contraseña incorrecta." }, 401);
     await addAccount(env, existing.name);
-    return json({ token: await newSession(env, k), name: existing.name });
+    return json({ token: await newSession(env, k, existing.sid), name: existing.name });
+  }
+
+  // Moderadores: eliminar una cuenta definitivamente (cuenta, perfil y envíos pendientes)
+  if (action === "delete") {
+    if (!isAdmin(request, env)) return json({ error: "Contraseña incorrecta." }, 401);
+    const name = cleanName(body.name), k = pkey(name);
+    if (!k) return json({ error: "Falta el nombre." }, 400);
+    await env.LIST.delete("user:" + k);
+    await removeAccount(env, k);
+    const profiles = (await env.LIST.get("profiles", "json")) || {};
+    if (profiles[k]) { delete profiles[k]; await env.LIST.put("profiles", JSON.stringify(profiles)); }
+    const subs = await env.LIST.list({ prefix: "sub:" + encodeURIComponent(k) + ":" });
+    await Promise.all(subs.keys.map(x => env.LIST.delete(x.name)));
+    if (body.block) {
+      const list = await blockedList(env);
+      if (!list.some(n => pkey(n) === k)) { list.push(name); await env.LIST.put("blocked", JSON.stringify(list)); }
+    }
+    return json({ ok: true, removedSubs: subs.keys.length });
+  }
+  if (action === "blocked") {
+    if (!isAdmin(request, env)) return json({ error: "Contraseña incorrecta." }, 401);
+    return json({ names: await blockedList(env) });
+  }
+  if (action === "unblock") {
+    if (!isAdmin(request, env)) return json({ error: "Contraseña incorrecta." }, 401);
+    const k = pkey(body.name);
+    await env.LIST.put("blocked", JSON.stringify((await blockedList(env)).filter(n => pkey(n) !== k)));
+    return json({ ok: true });
   }
 
   if (action === "reset") {
