@@ -1455,7 +1455,6 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     ["hardest", "Completar el nivel más difícil actual (#1)", false],
     ["topn", "Completar un nivel del top X (ej. X = 10)", true],
     ["verified", "Verificar X niveles", true],
-    ["creator", "Crear X niveles de la lista (creador o publicador)", true],
     ["points", "Tener X puntos o más", true],
     ["rank", "Estar en el top X del leaderboard", true],
     ["hardestrun", "Tener la hardest run de la lista (#1 de Hardest runs)", false],
@@ -1464,9 +1463,9 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   ];
   const ruleNeedsN = t => (BADGE_RULES.find(x => x[0] === t) || [])[2] === true;
   const LOWER_IS_BETTER = new Set(["rank", "topn"]);
-  // Separa "A, B & C" o "A y B" en nombres
-  const splitNames = v => String(v||"").split(/\s*(?:,|&|\/|\+|\by\b|\band\b)\s*/i).map(x => x.trim()).filter(Boolean);
-  const ruleOf = bd => (bd.rule && bd.rule.type && bd.rule.type !== "manual") ? bd.rule : null;
+
+  // Un badge con una regla que ya no existe (ej. el antiguo "creador") pasa a ser manual
+  const ruleOf = bd => (bd.rule && bd.rule.type && bd.rule.type !== "manual" && BADGE_RULES.some(x => x[0] === bd.rule.type)) ? bd.rule : null;
   let statsCache = {src: null, map: new Map()};
   const EMPTY_STATS = {done:0, main:0, verified:0, points:0, rank:Infinity, runs:0, upcoming:0, best:Infinity, creator:0, hardestrun:false};
   function playerStats(name){
@@ -1486,10 +1485,6 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         });
       });
       const getS = k => { if (!map.has(k)) map.set(k, {...EMPTY_STATS}); return map.get(k); };
-      // Creadores: cuenta cada nivel de la lista donde sale como creador o publicador
-      state.demons.forEach(d => {
-        new Set([...splitNames(d.creator), ...splitNames(d.publisher)].map(pkey)).forEach(k => { getS(k).creator++; });
-      });
       // Dueño de la hardest run: el mejor run del #1 de Hardest runs
       const hr = (state.runs||[])[0] && bestRun(state.runs[0]);
       if (hr) getS(pkey(hr.player)).hardestrun = true;
