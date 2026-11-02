@@ -1807,18 +1807,60 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     }
     state = next; render();
     setStatus("Guardando…");
-    const body = JSON.stringify(state);
-    saving = saving.then(() => fetch("/api/list", {method:"PUT", headers:{"content-type":"application/json","x-admin-password":password}, body}))
+    const body = JSON.stringify(state), gen = saveGen;
+    pendingSaves++;
+    saving = saving.then(() => {
+        // Un cambio hecho sobre una copia vieja de la lista no se envía
+        if (gen !== saveGen) return {skipped: true};
+        return fetch("/api/list", {method:"PUT", headers:{"content-type":"application/json","x-admin-password":password,"x-base-rev":String(serverRev)}, body});
+      })
       .then(async r => {
-        if (r.ok){ setStatus("Cambios guardados.","ok"); return true; }
+        if (r.skipped) return false;
+        if (r.ok){ const d = await r.json().catch(()=>({})); if (d.rev) { serverRev = d.rev; state.rev = d.rev; } setStatus("Cambios guardados.","ok"); return true; }
         const e = await r.json().catch(()=>({}));
+        if (r.status === 409){
+          saveGen++;
+          await refreshList(true);
+          setStatus("Otra persona guardó cambios antes que tú. Ya cargué la versión más reciente: vuelve a hacer tu último cambio.","err");
+          return false;
+        }
         if (r.status === 401){ logout(); setStatus("La contraseña ya no es válida. Entra de nuevo; tus últimos cambios no se guardaron.","err"); }
         else setStatus("No se guardó: " + (e.error || "error " + r.status),"err");
         return false;
       })
-      .catch(() => { setStatus("No se guardó: revisa tu conexión.","err"); return false; });
+      .catch(() => { setStatus("No se guardó: revisa tu conexión.","err"); return false; })
+      .finally(() => { pendingSaves--; });
     return saving;
   }
+
+  // ---------- mantener la lista al día ----------
+  let serverRev = 0, saveGen = 0, pendingSaves = 0;
+  function applyData(d){
+    state = {...state, ...d};
+    state.demons = (state.demons||[]).map(x => ({records:[], ...x}));
+    state.upcoming = Array.isArray(state.upcoming) ? state.upcoming : [];
+    state.runs = (Array.isArray(state.runs) ? state.runs : []).map(x => ({records:[], ...x}));
+    state.accounts = Array.isArray(state.accounts) ? state.accounts : [];
+    state.changelog = Array.isArray(state.changelog) ? state.changelog : [];
+    state.mods = Array.isArray(state.mods) ? state.mods : [];
+    state.players = (state.players && typeof state.players === "object" && !Array.isArray(state.players)) ? state.players : {};
+    state.profiles = (state.profiles && typeof state.profiles === "object" && !Array.isArray(state.profiles)) ? state.profiles : {};
+    serverRev = Number(d.rev) || 0;
+  }
+  // Trae la versión más reciente. Sin "force", no interrumpe si hay un formulario abierto o un guardado en curso.
+  async function refreshList(force){
+    if (!force && (pendingSaves || $("#modalRoot").innerHTML || document.body.classList.contains("is-dragging"))) return;
+    try {
+      const r = await fetch("/api/list", {cache:"no-store"});
+      if (!r.ok) return;
+      const d = await r.json();
+      if (!force && (Number(d.rev) || 0) === serverRev) return;
+      if (!force && (pendingSaves || $("#modalRoot").innerHTML)) return;
+      applyData(d); render();
+    } catch {}
+  }
+  setInterval(() => { if (editing && document.visibilityState === "visible") refreshList(false); }, 20000);
+  document.addEventListener("visibilitychange", () => { if (editing && document.visibilityState === "visible") refreshList(false); });
 
   // ---------- ventanas ----------
   function modal(html, onMount){
@@ -1847,7 +1889,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
           if (!r.ok){ $("#lStatus").textContent = "Contraseña incorrecta."; return; }
           password = pw; editing = true;
           try { sessionStorage.setItem("dl_pw", pw); } catch {}
-          close(); setStatus("Modo editor activo."); render(); loadPending();
+          close(); setStatus("Modo editor activo."); render(); loadPending(); refreshList(true);
         } catch { $("#lStatus").textContent = "No hay conexión con el servidor."; }
       });
     });
@@ -2119,15 +2161,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       const r = await fetch("/api/list", {cache:"no-store"});
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "Error " + r.status);
-      state = {...state, ...d};
-      state.demons = (state.demons||[]).map(x => ({records:[], ...x}));
-      state.upcoming = Array.isArray(state.upcoming) ? state.upcoming : [];
-      state.runs = (Array.isArray(state.runs) ? state.runs : []).map(x => ({records:[], ...x}));
-      state.accounts = Array.isArray(state.accounts) ? state.accounts : [];
-      state.changelog = Array.isArray(state.changelog) ? state.changelog : [];
-      state.mods = Array.isArray(state.mods) ? state.mods : [];
-      state.players = (state.players && typeof state.players === "object" && !Array.isArray(state.players)) ? state.players : {};
-      state.profiles = (state.profiles && typeof state.profiles === "object" && !Array.isArray(state.profiles)) ? state.profiles : {};
+      applyData(d);
       if (meReq) await meReq;
       readHash();
       loaded = true; restoring = true; render(); restoring = false;
