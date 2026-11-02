@@ -189,6 +189,20 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
 .phero.has-banner .pbody{padding:18px;min-width:0}
 .pbanner{align-self:stretch;background:var(--img) center/cover no-repeat;min-height:180px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 35%);mask-image:linear-gradient(90deg,transparent,#000 35%)}
 @media (max-width:640px){.phero.has-banner{grid-template-columns:minmax(0,1fr)}.pbanner{order:-1;min-height:120px;-webkit-mask-image:linear-gradient(180deg,#000 55%,transparent);mask-image:linear-gradient(180deg,#000 55%,transparent)}}
+.badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.bdg{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:9px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;cursor:help;font-family:var(--display);font-weight:700;color:var(--accent);font-size:.9rem;flex:none}
+.bdg img{width:100%;height:100%;object-fit:contain}
+.bdg.sm{width:20px;height:20px;border-radius:6px;font-size:.65rem}
+.pcell .badges{margin:0;gap:3px}
+#tip{position:fixed;z-index:50;max-width:240px;padding:8px 10px;border-radius:8px;background:var(--fg);color:var(--bg);font-size:.82rem;line-height:1.35;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.3)}
+#tip b{display:block;font-family:var(--display);font-size:.9rem}
+.bdg-edit{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 10px;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.bdg-edit input{background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:6px 8px;min-width:0;width:100%}
+.bdg-edit .wide{grid-column:2/-1}
+.bdg-pick{display:flex;flex-wrap:wrap;gap:8px}
+.bdg-pick label{display:flex;align-items:center;gap:6px;padding:6px 10px 6px 6px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);cursor:pointer;font-size:.88rem}
+.bdg-pick input:checked + .bdg{outline:2px solid var(--accent)}
+.danger-zone{border:1px solid color-mix(in srgb, var(--accent) 45%, var(--line));border-radius:10px;padding:12px;margin-top:10px}
 .pbio{white-space:pre-line;overflow-wrap:anywhere;margin:10px 0 0;max-width:62ch}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-bottom:14px}
 .seg button{border:none;background:var(--surface-2);padding:8px 14px;cursor:pointer;font-weight:700}
@@ -292,6 +306,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
             <button class="btn" id="addRun">+ Hardest run</button>
             <button class="btn" id="editSite">Editar sitio</button>
           </div>
+          <div class="btn-row"><button class="btn" id="editBadges">Badges</button><button class="btn" id="openBlocked">Nombres bloqueados</button></div>
           <button class="btn" id="openJson">Importar / exportar JSON</button>
           <button class="btn" id="logoutBtn">Salir del modo editor</button>
         </div>
@@ -302,6 +317,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
 </main>
 
 <div id="modalRoot"></div>
+<div id="tip" role="tooltip" hidden></div>
 
 <script>
 (() => {
@@ -780,7 +796,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     for (const p of rows){
       const done = p.entries.filter(e => e.progress >= 100 && !e.upcoming);
       const hardest = done.reduce((a,e) => !a || e.pos < a.pos ? e : a, null);
-      html += `<tr><td class="num">${p.rank}</td><td><span class="pcell">${avHTML(p.name, playerAvatar(p.name), 30)}${plink(p.name)}</span></td><td class="num">${fmt(p.pts)}</td>
+      html += `<tr><td class="num">${p.rank}</td><td><span class="pcell">${avHTML(p.name, playerAvatar(p.name), 30)}${plink(p.name)}${badgesHTML(p.name, true)}</span></td><td class="num">${fmt(p.pts)}</td>
         <td class="num">${done.length}</td><td class="num">${p.entries.filter(e=>e.verified).length}</td>
         <td class="num">${p.entries.filter(e=>e.progress<100 || e.upcoming).length}</td>
         <td>${hardest?esc(hardest.d.name)+` <span class="hint">(#${hardest.pos})</span>`:"—"}</td></tr>`;
@@ -830,6 +846,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         <div class="pinfo">
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px"><span class="pos${p.rank<=3?" p"+p.rank:""}">#${p.rank}</span><span class="chip">Leaderboard</span></div>
         <h2 class="pname"${nameStyle(p.name)}>${esc(p.name)}</h2>
+        ${badgesHTML(p.name, false)}
         ${info.bio ? `<p class="pbio">${esc(info.bio)}</p>` : ""}
         <div class="btn-row" style="margin-top:10px">
           ${ytUrl ? `<a class="btn" href="${esc(ytUrl)}" target="_blank" rel="noopener">Canal de YouTube ↗</a>` : ""}
@@ -1357,9 +1374,19 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         <input id="p_yt" value="${esc(((state.players||{})[k]||{}).youtube||"")}" placeholder="https://www.youtube.com/@usuario"></label>
       <label class="f" style="margin-top:12px">Foto personalizada <span class="hint">opcional; reemplaza la de YouTube</span>
         ${imgField("p_av", ((state.players||{})[k]||{}).avatar, "Link de la imagen o pulsa Subir")}</label>
+      <div class="sub">Badges</div>
+      ${(state.badges||[]).some(bd => ruleOf(bd)) ? `<p class="hint" style="margin-top:0">Los badges automáticos se dan solos y no salen aquí.</p>` : ""}
+      ${(state.badges||[]).filter(bd => !ruleOf(bd)).length ? `<div class="bdg-pick">${state.badges.filter(bd => !ruleOf(bd)).map(bd => `<label><input type="checkbox" data-badge="${esc(bd.id)}" ${(((state.players||{})[k]||{}).badges||[]).includes(bd.id) ? "checked" : ""} hidden>${badgeIcon(bd, false)}${esc(bd.name)}</label>`).join("")}</div>`
+        : `<p class="hint" style="margin:0">No hay badges manuales. Créalos con el botón “Badges” del panel del editor.</p>`}
       <div class="sub">Cuenta del jugador</div>
-      <p class="hint" style="margin-top:0">Si alguien olvidó su contraseña, o otra persona tomó su nombre, borra la cuenta. Así se puede volver a crear con ese nombre. Sus récords no se tocan.</p>
-      <button type="button" class="btn danger" id="pReset">Borrar cuenta</button>
+      <p class="hint" style="margin-top:0"><b>Quitar acceso:</b> si olvidó su contraseña o alguien entró a una cuenta que no es suya. Se cierra la sesión y la cuenta se puede volver a crear. Su perfil y récords no se tocan.</p>
+      <button type="button" class="btn" id="pReset">Quitar acceso</button>
+      <div class="danger-zone">
+        <p class="hint" style="margin-top:0"><b>Eliminar cuenta definitivamente:</b> borra la cuenta, su perfil (foto, color, portada, descripción, badges) y sus envíos pendientes.</p>
+        <label class="hint" style="display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox" id="pDelRecs"> Quitar también todos sus récords, runs y progresos de la lista</label>
+        <label class="hint" style="display:flex;gap:6px;align-items:center;font-weight:600;margin-top:6px"><input type="checkbox" id="pBlock"> Bloquear este nombre para que nadie pueda volver a crear la cuenta</label>
+        <button type="button" class="btn danger" id="pDelete" style="margin-top:10px">Eliminar cuenta definitivamente</button>
+      </div>
       <div class="foot"><span class="status" id="pStatus"></span>
         <button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit">Guardar</button></div></form>`, close => {
       $("#cancel").onclick = close;
@@ -1376,15 +1403,207 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         try {
           const r = await fetch("/api/cuenta", {method:"POST", headers:{"content-type":"application/json","x-admin-password":password}, body:JSON.stringify({action:"reset", name})});
           const d = await r.json().catch(()=>({}));
-          $("#pStatus").textContent = r.ok ? "Cuenta borrada. Ya se puede crear de nuevo." : (d.error || "No se pudo borrar.");
+          $("#pStatus").textContent = r.ok ? "Acceso quitado. La cuenta se puede volver a crear." : (d.error || "No se pudo quitar el acceso.");
         } catch { $("#pStatus").textContent = "No hay conexión con el servidor."; }
+      };
+      const db = $("#pDelete");
+      db.onclick = async () => {
+        if (!db.dataset.confirm){ db.dataset.confirm = "1"; db.textContent = `¿Eliminar a ${name} para siempre? Pulsa otra vez`; return; }
+        db.disabled = true; $("#pStatus").textContent = "Eliminando cuenta…";
+        try {
+          const r = await fetch("/api/cuenta", {method:"POST", headers:{"content-type":"application/json","x-admin-password":password}, body:JSON.stringify({action:"delete", name, block: $("#pBlock").checked})});
+          const d = await r.json().catch(()=>({}));
+          if (!r.ok){ $("#pStatus").textContent = d.error || "No se pudo eliminar."; db.disabled = false; return; }
+        } catch { $("#pStatus").textContent = "No hay conexión con el servidor."; db.disabled = false; return; }
+        // Quitar sus datos de la lista
+        const same = n => pkey(n) === k;
+        const players = {...(state.players||{})}; delete players[k];
+        const profiles = {...(state.profiles||{})}; delete profiles[k];
+        let next = {...state, players, profiles, accounts: (state.accounts||[]).filter(n => !same(n))};
+        if ($("#pDelRecs").checked){
+          next.demons = next.demons.map(d => ({...d, verifier: same(d.verifier) ? "" : d.verifier, records: (d.records||[]).filter(rr => !same(rr.player))}));
+          next.runs = (next.runs||[]).map(d => ({...d, records: (d.records||[]).filter(rr => !same(rr.player))}));
+          next.upcoming = (next.upcoming||[]).map(u => same(u.player) ? {...u, player:"", progress:0, video:""} : u);
+        }
+        pending = (pending||[]).filter(x => !same(x.player));
+        close(); openPlayer = null; tab = "stats";
+        save(next).then(ok => { if (ok) setStatus(`Cuenta de ${name} eliminada.`, "ok"); });
       };
       $("#pf").addEventListener("submit", e => {
         e.preventDefault();
         const players = {...(state.players||{})};
         const youtube = $("#p_yt").value.trim(), avatar = $("#p_av").value.trim();
-        if (youtube || avatar) players[k] = {youtube, avatar}; else delete players[k];
+        const badges = [...document.querySelectorAll("[data-badge]")].filter(c => c.checked).map(c => c.dataset.badge);
+        if (youtube || avatar || badges.length) players[k] = {...(players[k]||{}), youtube, avatar, badges}; else delete players[k];
         save({...state, players}); close();
+      });
+    });
+  }
+
+
+  // ---------- badges ----------
+  function badgeIcon(bd, small){
+    const ini = esc((String(bd.name||"?").trim()[0] || "?").toUpperCase());
+    return `<span class="bdg${small ? " sm" : ""}" tabindex="0" data-tip-title="${esc(bd.name)}" data-tip="${esc(bd.desc||"")}" aria-label="${esc(bd.name)}">${bd.img ? `<img src="${esc(bd.img)}" alt="" loading="lazy">` : ini}</span>`;
+  }
+  // Reglas para ganar badges solos
+  const BADGE_RULES = [
+    ["manual", "Lo doy yo a mano"],
+    ["done", "Completar X extremes (incluye verificados)"],
+    ["main", "Completar X extremes de la lista principal"],
+    ["verified", "Verificar X niveles"],
+    ["points", "Tener X puntos o más"],
+    ["rank", "Estar en el top X del leaderboard"],
+    ["runs", "Tener X hardest runs"],
+    ["upcoming", "Tener progreso en X futuros niveles"]
+  ];
+  const ruleOf = bd => (bd.rule && bd.rule.type && bd.rule.type !== "manual") ? bd.rule : null;
+  let statsCache = {src: null, map: new Map()};
+  function playerStats(name){
+    if (statsCache.src !== state){
+      const map = new Map();
+      buildPlayers().forEach(p => {
+        const done = p.entries.filter(e => e.progress >= 100 && !e.upcoming);
+        map.set(pkey(p.name), {
+          done: done.length,
+          main: done.filter(e => e.pos <= state.mainSize).length,
+          verified: p.entries.filter(e => e.verified).length,
+          points: p.pts,
+          rank: p.pts > 0 ? p.rank : Infinity,
+          runs: (p.runs||[]).length,
+          upcoming: p.entries.filter(e => e.upcoming).length
+        });
+      });
+      statsCache = {src: state, map};
+    }
+    return statsCache.map.get(pkey(name)) || null;
+  }
+  function earns(bd, st){
+    const r = ruleOf(bd); if (!r || !st) return false;
+    const n = Number(r.n) || 0;
+    return r.type === "rank" ? st.rank <= n : (st[r.type] || 0) >= n;
+  }
+  function playerBadges(name){
+    const manual = new Set((((state.players||{})[pkey(name)]||{}).badges) || []);
+    const st = playerStats(name);
+    let list = (state.badges||[]).filter(bd => ruleOf(bd) ? earns(bd, st) : manual.has(bd.id));
+    // De cada tipo de regla, solo el badge más alto (ej. si tiene 10 extremes, sale el de 10 y no el de 5)
+    if (state.badgesHighestOnly !== false){
+      const best = new Map();
+      list.forEach(bd => {
+        const r = ruleOf(bd); if (!r) return;
+        const cur = best.get(r.type), n = Number(r.n) || 0;
+        const better = r.type === "rank" ? n < (cur ? Number(cur.rule.n) : Infinity) : n > (cur ? Number(cur.rule.n) : -Infinity);
+        if (!cur || better) best.set(r.type, bd);
+      });
+      list = list.filter(bd => !ruleOf(bd) || best.get(bd.rule.type) === bd);
+    }
+    return list;
+  }
+  function badgesHTML(name, small){
+    const list = playerBadges(name);
+    return list.length ? `<span class="badges">${list.map(bd => badgeIcon(bd, small)).join("")}</span>` : "";
+  }
+  // Globo con el nombre y la descripción al pasar el mouse (o tocar en el celular)
+  (() => {
+    const tip = document.getElementById("tip");
+    const show = el => {
+      tip.innerHTML = `<b>${esc(el.dataset.tipTitle||"")}</b>${esc(el.dataset.tip||"")}`;
+      tip.hidden = false;
+      const b = el.getBoundingClientRect(), t = tip.getBoundingClientRect();
+      let x = b.left + b.width/2 - t.width/2, y = b.bottom + 8;
+      x = Math.max(8, Math.min(x, window.innerWidth - t.width - 8));
+      if (y + t.height > window.innerHeight - 8) y = b.top - t.height - 8;
+      tip.style.left = x + "px"; tip.style.top = y + "px";
+    };
+    const hide = () => { tip.hidden = true; };
+    document.addEventListener("mouseover", e => { const el = e.target.closest("[data-tip-title]"); if (el) show(el); });
+    document.addEventListener("mouseout", e => { if (e.target.closest("[data-tip-title]")) hide(); });
+    document.addEventListener("focusin", e => { const el = e.target.closest("[data-tip-title]"); if (el) show(el); else hide(); });
+    document.addEventListener("focusout", hide);
+    window.addEventListener("scroll", hide, {passive:true});
+  })();
+  function badgeRow(bd={id:uid(), name:"", desc:"", img:""}){
+    const fid = "bd_img_" + bd.id, rule = bd.rule || {type:"manual", n:""};
+    return `<div class="bdg-edit" data-id="${esc(bd.id)}">
+      ${badgeIcon(bd, false)}
+      <input data-k="name" value="${esc(bd.name)}" placeholder="Nombre del badge (ej. Top 1)" aria-label="Nombre" maxlength="40">
+      <button type="button" class="ibtn" data-del aria-label="Quitar badge">✕</button>
+      <input class="wide" data-k="desc" value="${esc(bd.desc)}" placeholder="Descripción (sale al pasar el mouse)" aria-label="Descripción" maxlength="160">
+      <span class="wide">${imgField(fid, bd.img, "Imagen del badge (link o pulsa Subir)")}</span>
+      <span class="wide" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <select data-k="rtype" aria-label="Cómo se gana" style="flex:1 1 220px;background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:6px 8px">${BADGE_RULES.map(([v,l]) => `<option value="${v}" ${rule.type===v?"selected":""}>${l}</option>`).join("")}</select>
+        <input data-k="rn" type="number" min="1" value="${esc(rule.n)}" placeholder="X" aria-label="Cantidad" style="width:90px;flex:none" ${rule.type==="manual"?"hidden":""}>
+      </span>
+    </div>`;
+  }
+  function openBadgesEditor(){
+    modal(`<h3>Badges</h3>
+      <p class="hint" style="margin-top:0">Elige cómo se gana cada badge. Los automáticos se dan y se quitan solos según los récords (ej. “Completar X extremes” con X = 5, otro con X = 10…). Los manuales se dan desde el perfil del jugador, en “Opciones de moderador”. Las imágenes cuadradas o PNG sin fondo se ven mejor.</p>
+      <label class="hint" style="display:flex;gap:6px;align-items:center;font-weight:600;margin-bottom:12px"><input type="checkbox" id="bdHigh" ${state.badgesHighestOnly !== false ? "checked" : ""}> En badges automáticos del mismo tipo, mostrar solo el más alto que tenga cada jugador</label>
+      <form id="bf"><div id="bdRows">${(state.badges||[]).map(badgeRow).join("")}</div>
+      <button type="button" class="btn" id="bdAdd">+ Nuevo badge</button>
+      <div class="foot"><span class="status" id="bStatus"></span>
+        <button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit">Guardar</button></div></form>`, close => {
+      $("#cancel").onclick = close;
+      const bind = scope => {
+        scope.querySelectorAll("[data-del]").forEach(b => b.onclick = () => {
+          if (!b.dataset.confirm){ b.dataset.confirm = "1"; b.textContent = "¿Seguro?"; return; }
+          b.closest(".bdg-edit").remove();
+        });
+        bindUploadsIn(scope, $("#bStatus"));
+        (scope.matches && scope.matches('.bdg-edit') ? [scope] : [...scope.querySelectorAll('.bdg-edit')]).forEach(row => {
+          const upd = () => {
+            const bd = {name: row.querySelector('[data-k="name"]').value, desc: "", img: document.getElementById("bd_img_" + row.dataset.id).value.trim()};
+            row.querySelector(".bdg").outerHTML = badgeIcon(bd, false);
+          };
+          row.querySelector('[data-k="name"]').oninput = upd;
+          row.querySelector('[data-k="rtype"]').onchange = e => { const n = row.querySelector('[data-k="rn"]'); n.hidden = e.target.value === "manual"; if (!n.hidden && !n.value) n.focus(); };
+          document.getElementById("bd_img_" + row.dataset.id).oninput = upd;
+        });
+      };
+      bind($("#bdRows"));
+      $("#bdAdd").onclick = () => {
+        $("#bdRows").insertAdjacentHTML("beforeend", badgeRow());
+        const last = $("#bdRows").lastElementChild; bind(last); last.querySelector('[data-k="name"]').focus();
+      };
+      $("#bf").addEventListener("submit", e => {
+        e.preventDefault();
+        const badges = [...document.querySelectorAll("#bdRows .bdg-edit")].map(row => ({
+          id: row.dataset.id,
+          name: row.querySelector('[data-k="name"]').value.trim(),
+          desc: row.querySelector('[data-k="desc"]').value.trim(),
+          img: document.getElementById("bd_img_" + row.dataset.id).value.trim(),
+          rule: {type: row.querySelector('[data-k="rtype"]').value, n: Math.max(1, Math.round(+row.querySelector('[data-k="rn"]').value || 1))}
+        })).filter(b => b.name);
+        const bad = badges.find(b => b.rule.type !== "manual" && !(+document.querySelector(`.bdg-edit[data-id="${b.id}"] [data-k="rn"]`).value > 0));
+        if (bad){ $("#bStatus").textContent = `Pon la cantidad (X) del badge “${bad.name}”.`; return; }
+        const ids = new Set(badges.map(b => b.id));
+        // Si se borró un badge, se le quita a todos
+        const players = Object.fromEntries(Object.entries(state.players||{}).map(([k,v]) => [k, v.badges ? {...v, badges: v.badges.filter(id => ids.has(id))} : v]));
+        save({...state, badges, players, badgesHighestOnly: $("#bdHigh").checked}); close();
+      });
+    });
+  }
+  async function openBlockedNames(){
+    let names = null, err = "";
+    try {
+      const r = await fetch("/api/cuenta", {method:"POST", headers:{"content-type":"application/json","x-admin-password":password}, body:JSON.stringify({action:"blocked"})});
+      const d = await r.json().catch(()=>({})); if (!r.ok) throw new Error(d.error || "Error " + r.status); names = d.names;
+    } catch (e) { err = e.message; names = []; }
+    modal(`<h3>Nombres bloqueados</h3>
+      <p class="hint" style="margin-top:0">Nadie puede crear una cuenta con estos nombres. Se agregan al eliminar una cuenta con la casilla “Bloquear este nombre”.</p>
+      ${err ? `<p class="status err">${esc(err)}</p>` : ""}
+      <div class="sublist" id="blkList">${names.length ? names.map(n => `<div class="subitem" style="grid-template-columns:minmax(0,1fr) auto;align-items:center"><span class="sl">${esc(n)}</span><button class="btn" data-unblock="${esc(n)}">Desbloquear</button></div>`).join("") : `<p class="hint" style="margin:0">No hay nombres bloqueados.</p>`}</div>
+      <div class="foot"><span class="status" id="blkStatus"></span><button class="btn" id="cancel">Cerrar</button></div>`, close => {
+      $("#cancel").onclick = close;
+      document.querySelectorAll("[data-unblock]").forEach(b => b.onclick = async () => {
+        b.disabled = true;
+        try {
+          const r = await fetch("/api/cuenta", {method:"POST", headers:{"content-type":"application/json","x-admin-password":password}, body:JSON.stringify({action:"unblock", name:b.dataset.unblock})});
+          if (!r.ok) throw new Error();
+          b.closest(".subitem").remove(); $("#blkStatus").textContent = "Nombre desbloqueado.";
+        } catch { b.disabled = false; $("#blkStatus").textContent = "No se pudo desbloquear."; }
       });
     });
   }
@@ -1861,6 +2080,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     state.accounts = Array.isArray(state.accounts) ? state.accounts : [];
     state.changelog = Array.isArray(state.changelog) ? state.changelog : [];
     state.mods = Array.isArray(state.mods) ? state.mods : [];
+    state.badges = Array.isArray(state.badges) ? state.badges : [];
     state.players = (state.players && typeof state.players === "object" && !Array.isArray(state.players)) ? state.players : {};
     state.profiles = (state.profiles && typeof state.profiles === "object" && !Array.isArray(state.profiles)) ? state.profiles : {};
     serverRev = Number(d.rev) || 0;
@@ -2217,6 +2437,8 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   $("#clAll").onclick = openChangelogAll;
   $("#clEdit").onclick = openChangelogEditor;
   $("#modEdit").onclick = openModsEditor;
+  $("#editBadges").onclick = openBadgesEditor;
+  $("#openBlocked").onclick = openBlockedNames;
   $("#acct").addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b) return;
     if (b.id === "acctLogin") openAccountLogin();
