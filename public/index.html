@@ -796,7 +796,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     for (const p of rows){
       const done = p.entries.filter(e => e.progress >= 100 && !e.upcoming);
       const hardest = done.reduce((a,e) => !a || e.pos < a.pos ? e : a, null);
-      html += `<tr><td class="num">${p.rank}</td><td><span class="pcell">${avHTML(p.name, playerAvatar(p.name), 30)}${plink(p.name)}${badgesHTML(p.name, true)}</span></td><td class="num">${fmt(p.pts)}</td>
+      html += `<tr><td class="num">${p.rank}</td><td><span class="pcell">${avHTML(p.name, playerAvatar(p.name), 30)}${plink(p.name)}</span></td><td class="num">${fmt(p.pts)}</td>
         <td class="num">${done.length}</td><td class="num">${p.entries.filter(e=>e.verified).length}</td>
         <td class="num">${p.entries.filter(e=>e.progress<100 || e.upcoming).length}</td>
         <td>${hardest?esc(hardest.d.name)+` <span class="hint">(#${hardest.pos})</span>`:"—"}</td></tr>`;
@@ -1447,26 +1447,37 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     return `<span class="bdg${small ? " sm" : ""}" tabindex="0" data-tip-title="${esc(bd.name)}" data-tip="${esc(bd.desc||"")}" aria-label="${esc(bd.name)}">${bd.img ? `<img src="${esc(bd.img)}" alt="" loading="lazy">` : ini}</span>`;
   }
   // Reglas para ganar badges solos
+  // [tipo, texto, ¿usa cantidad X?]
   const BADGE_RULES = [
-    ["manual", "Lo doy yo a mano"],
-    ["done", "Completar X extremes (incluye verificados)"],
-    ["main", "Completar X extremes de la lista principal"],
-    ["verified", "Verificar X niveles"],
-    ["points", "Tener X puntos o más"],
-    ["rank", "Estar en el top X del leaderboard"],
-    ["runs", "Tener X hardest runs"],
-    ["upcoming", "Tener progreso en X futuros niveles"]
+    ["manual", "Lo doy yo a mano", false],
+    ["done", "Completar X extremes (incluye verificados)", true],
+    ["main", "Completar X niveles de la main list", true],
+    ["hardest", "Completar el nivel más difícil actual (#1)", false],
+    ["topn", "Completar un nivel del top X (ej. X = 10)", true],
+    ["verified", "Verificar X niveles", true],
+    ["creator", "Crear X niveles de la lista (creador o publicador)", true],
+    ["points", "Tener X puntos o más", true],
+    ["rank", "Estar en el top X del leaderboard", true],
+    ["hardestrun", "Tener la hardest run de la lista (#1 de Hardest runs)", false],
+    ["runs", "Tener X runs en Hardest runs", true],
+    ["upcoming", "Tener progreso en X futuros niveles", true]
   ];
+  const ruleNeedsN = t => (BADGE_RULES.find(x => x[0] === t) || [])[2] === true;
+  const LOWER_IS_BETTER = new Set(["rank", "topn"]);
+  // Separa "A, B & C" o "A y B" en nombres
+  const splitNames = v => String(v||"").split(/\s*(?:,|&|\/|\+|\by\b|\band\b)\s*/i).map(x => x.trim()).filter(Boolean);
   const ruleOf = bd => (bd.rule && bd.rule.type && bd.rule.type !== "manual") ? bd.rule : null;
   let statsCache = {src: null, map: new Map()};
+  const EMPTY_STATS = {done:0, main:0, verified:0, points:0, rank:Infinity, runs:0, upcoming:0, best:Infinity, creator:0, hardestrun:false};
   function playerStats(name){
     if (statsCache.src !== state){
       const map = new Map();
       buildPlayers().forEach(p => {
         const done = p.entries.filter(e => e.progress >= 100 && !e.upcoming);
-        map.set(pkey(p.name), {
+        map.set(pkey(p.name), {...EMPTY_STATS,
           done: done.length,
           main: done.filter(e => e.pos <= state.mainSize).length,
+          best: done.reduce((m, e) => Math.min(m, e.pos), Infinity),
           verified: p.entries.filter(e => e.verified).length,
           points: p.pts,
           rank: p.pts > 0 ? p.rank : Infinity,
@@ -1474,14 +1485,26 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
           upcoming: p.entries.filter(e => e.upcoming).length
         });
       });
+      const getS = k => { if (!map.has(k)) map.set(k, {...EMPTY_STATS}); return map.get(k); };
+      // Creadores: cuenta cada nivel de la lista donde sale como creador o publicador
+      state.demons.forEach(d => {
+        new Set([...splitNames(d.creator), ...splitNames(d.publisher)].map(pkey)).forEach(k => { getS(k).creator++; });
+      });
+      // Dueño de la hardest run: el mejor run del #1 de Hardest runs
+      const hr = (state.runs||[])[0] && bestRun(state.runs[0]);
+      if (hr) getS(pkey(hr.player)).hardestrun = true;
       statsCache = {src: state, map};
     }
-    return statsCache.map.get(pkey(name)) || null;
+    return statsCache.map.get(pkey(name)) || EMPTY_STATS;
   }
   function earns(bd, st){
     const r = ruleOf(bd); if (!r || !st) return false;
     const n = Number(r.n) || 0;
-    return r.type === "rank" ? st.rank <= n : (st[r.type] || 0) >= n;
+    if (r.type === "rank") return st.rank <= n;
+    if (r.type === "topn") return st.best <= n;
+    if (r.type === "hardest") return st.best <= 1;
+    if (r.type === "hardestrun") return !!st.hardestrun;
+    return (st[r.type] || 0) >= n;
   }
   function playerBadges(name){
     const manual = new Set((((state.players||{})[pkey(name)]||{}).badges) || []);
@@ -1493,7 +1516,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       list.forEach(bd => {
         const r = ruleOf(bd); if (!r) return;
         const cur = best.get(r.type), n = Number(r.n) || 0;
-        const better = r.type === "rank" ? n < (cur ? Number(cur.rule.n) : Infinity) : n > (cur ? Number(cur.rule.n) : -Infinity);
+        const better = LOWER_IS_BETTER.has(r.type) ? n < (cur ? Number(cur.rule.n) : Infinity) : n > (cur ? Number(cur.rule.n) : -Infinity);
         if (!cur || better) best.set(r.type, bd);
       });
       list = list.filter(bd => !ruleOf(bd) || best.get(bd.rule.type) === bd);
@@ -1533,7 +1556,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       <span class="wide">${imgField(fid, bd.img, "Imagen del badge (link o pulsa Subir)")}</span>
       <span class="wide" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <select data-k="rtype" aria-label="Cómo se gana" style="flex:1 1 220px;background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:6px 8px">${BADGE_RULES.map(([v,l]) => `<option value="${v}" ${rule.type===v?"selected":""}>${l}</option>`).join("")}</select>
-        <input data-k="rn" type="number" min="1" value="${esc(rule.n)}" placeholder="X" aria-label="Cantidad" style="width:90px;flex:none" ${rule.type==="manual"?"hidden":""}>
+        <input data-k="rn" type="number" min="1" value="${esc(rule.n)}" placeholder="X" aria-label="Cantidad" style="width:90px;flex:none" ${ruleNeedsN(rule.type)?"":"hidden"}>
       </span>
     </div>`;
   }
@@ -1558,7 +1581,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
             row.querySelector(".bdg").outerHTML = badgeIcon(bd, false);
           };
           row.querySelector('[data-k="name"]').oninput = upd;
-          row.querySelector('[data-k="rtype"]').onchange = e => { const n = row.querySelector('[data-k="rn"]'); n.hidden = e.target.value === "manual"; if (!n.hidden && !n.value) n.focus(); };
+          row.querySelector('[data-k="rtype"]').onchange = e => { const n = row.querySelector('[data-k="rn"]'); n.hidden = !ruleNeedsN(e.target.value); if (!n.hidden && !n.value) n.focus(); };
           document.getElementById("bd_img_" + row.dataset.id).oninput = upd;
         });
       };
@@ -1576,7 +1599,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
           img: document.getElementById("bd_img_" + row.dataset.id).value.trim(),
           rule: {type: row.querySelector('[data-k="rtype"]').value, n: Math.max(1, Math.round(+row.querySelector('[data-k="rn"]').value || 1))}
         })).filter(b => b.name);
-        const bad = badges.find(b => b.rule.type !== "manual" && !(+document.querySelector(`.bdg-edit[data-id="${b.id}"] [data-k="rn"]`).value > 0));
+        const bad = badges.find(b => ruleNeedsN(b.rule.type) && !(+document.querySelector(`.bdg-edit[data-id="${b.id}"] [data-k="rn"]`).value > 0));
         if (bad){ $("#bStatus").textContent = `Pon la cantidad (X) del badge “${bad.name}”.`; return; }
         const ids = new Set(badges.map(b => b.id));
         // Si se borró un badge, se le quita a todos
