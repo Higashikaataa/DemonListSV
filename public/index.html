@@ -1016,7 +1016,8 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       const tools = editing ? `<div class="edit-tools" data-stop>
           <button class="ibtn" data-uact="up" data-id="${d.id}" ${pos===1?"disabled":""} aria-label="Subir">▲</button>
           <button class="ibtn" data-uact="down" data-id="${d.id}" ${pos===all.length?"disabled":""} aria-label="Bajar">▼</button>
-          <button class="ibtn" data-uact="edit" data-id="${d.id}">Editar</button></div>`
+          <button class="ibtn" data-uact="edit" data-id="${d.id}">Editar</button>
+          <button class="ibtn" data-uact="promote" data-id="${d.id}" title="Pasar a la lista">→ Lista</button></div>`
         : `<div class="pts pct">${pct}%<small>progreso</small></div>`;
       html += `<div class="row" role="button" tabindex="0" data-uopen="${d.id}">
         ${thumbHTML(d,pos)}
@@ -1043,6 +1044,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       const arr = (state.upcoming||[]).slice();
       const i = arr.findIndex(d => d.id === b.dataset.id);
       if (b.dataset.uact === "edit") return openUpForm(arr[i]);
+      if (b.dataset.uact === "promote") return promoteToList("u:" + arr[i].id);
       const j = b.dataset.uact === "up" ? i-1 : i+1;
       if (j<0 || j>=arr.length) return;
       [arr[i],arr[j]] = [arr[j],arr[i]];
@@ -1069,7 +1071,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         </div>
         <div class="btn-row" style="margin-top:14px">
           ${video ? `<a class="btn" href="${esc(video)}" target="_blank" rel="noopener">Ver progreso ↗</a>` : ""}
-          ${editing ? `<button class="btn primary" id="editUp">Editar nivel</button>` : ""}
+          ${editing ? `<button class="btn primary" id="editUp">Editar nivel</button><button class="btn" id="promoteUp">Pasar a la lista</button>` : ""}
         </div>
       </div>
     </div>
@@ -1078,6 +1080,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   function bindUpDetail(){
     $("#uback")?.addEventListener("click", () => { openUp = null; tab = "up"; render(); });
     $("#editUp")?.addEventListener("click", () => openUpForm((state.upcoming||[]).find(x => x.id === openUp)));
+    $("#promoteUp")?.addEventListener("click", () => promoteToList("u:" + openUp));
   }
   function openUpForm(d){
     const isNew = !d, list = state.upcoming||[];
@@ -1203,7 +1206,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         </div>
         <div class="btn-row" style="margin-top:14px">
           ${video ? `<a class="btn" href="${esc(video)}" target="_blank" rel="noopener">Ver video del nivel ↗</a>` : ""}
-          ${editing ? `<button class="btn primary" id="editRun">Editar nivel</button>` : ""}
+          ${editing ? `<button class="btn primary" id="editRun">Editar nivel</button><button class="btn" id="promoteRun">Copiar a la lista</button>` : ""}
         </div>
       </div>
     </div>
@@ -1220,6 +1223,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   function bindRunDetail(){
     $("#rback")?.addEventListener("click", () => { openRun = null; tab = "runs"; render(); });
     $("#editRun")?.addEventListener("click", () => openRunForm((state.runs||[]).find(x => x.id === openRun)));
+    $("#promoteRun")?.addEventListener("click", () => promoteToList("r:" + openRun));
   }
   function runRow(rr={player:"", from:20, to:100, video:""}){
     return `<div class="rec-edit run-edit">${rowHandle}<input placeholder="Jugador" value="${esc(rr.player)}" data-k="player" aria-label="Jugador">
@@ -1934,16 +1938,43 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       <button type="button" class="ibtn" data-del aria-label="Quitar récord">✕</button></div>`;
   }
 
-  function openDemonForm(d){
+  // Datos de un futuro nivel o de un hardest run, listos para el formulario de demon
+  const LEVEL_FIELDS = ["name","publisher","creator","levelId","video","thumb","notes","art","artOpacity","artInProfile","profileImg"];
+  function levelSource(key){
+    const [kind, id] = String(key||"").split(":");
+    const src = kind === "u" ? (state.upcoming||[]).find(x => x.id === id) : kind === "r" ? (state.runs||[]).find(x => x.id === id) : null;
+    if (!src) return null;
+    const out = {};
+    LEVEL_FIELDS.forEach(f => { if (src[f] !== undefined && src[f] !== "") out[f] = src[f]; });
+    if (kind === "u" && src.player) out.verifier = src.player;
+    return out;
+  }
+  function sourceOptions(){
+    const ups = state.upcoming||[], runs = state.runs||[];
+    return (ups.length ? `<optgroup label="Futuros niveles">${ups.map(u => `<option value="u:${esc(u.id)}">${esc(u.name)}${u.player ? " · " + esc(u.player) : ""}</option>`).join("")}</optgroup>` : "")
+         + (runs.length ? `<optgroup label="Hardest runs">${runs.map(x => `<option value="r:${esc(x.id)}">${esc(x.name)}</option>`).join("")}</optgroup>` : "");
+  }
+  // Pasar un futuro nivel (o un nivel de hardest runs) a la lista
+  function promoteToList(key){
+    const pre = levelSource(key); if (!pre) return;
+    openDemonForm(null, {prefill: pre, fromUp: key.startsWith("u:") ? key.slice(2) : null});
+  }
+
+  function openDemonForm(d, opts={}){
     const isNew = !d;
-    d = d || {id:uid(), name:"", creator:"", publisher:"", verifier:"", levelId:"", req:null, video:"", thumb:"", notes:"", records:[]};
+    d = d || {id:uid(), name:"", creator:"", publisher:"", verifier:"", levelId:"", req:null, video:"", thumb:"", notes:"", records:[], ...(opts.prefill||{})};
+    const srcOpts = isNew ? sourceOptions() : "";
     const curPos = isNew ? state.demons.length+1 : state.demons.findIndex(x=>x.id===d.id)+1;
     const max = isNew ? state.demons.length+1 : state.demons.length;
     modal(`<h3>${isNew?"Agregar demon":"Editar demon"}</h3>
       <form id="df">
+      ${opts.fromUp ? `<p class="hint" style="margin-top:0">Datos tomados de Futuros niveles. Revisa el video de verificación y elige la posición.</p>` : ""}
+      ${isNew && srcOpts && !opts.prefill ? `<label class="f" style="margin-bottom:12px">Rellenar con los datos de… <span class="hint">opcional</span>
+        <select id="f_src"><option value="">Escribir todo a mano</option>${srcOpts}</select></label>` : ""}
       <div class="grid2">
         <label class="f">Nombre del nivel<input id="f_name" required value="${esc(d.name)}"></label>
-        <label class="f">Posición (1–${max})<input id="f_pos" type="number" min="1" max="${max}" value="${curPos}"></label>
+        <label class="f">Posición (1–${max})<input id="f_pos" type="number" min="1" max="${max}" value="${curPos}">
+          <span class="btn-row" style="gap:4px;margin-top:2px"><button type="button" class="ibtn" data-sec="main">Final de principal</button><button type="button" class="ibtn" data-sec="ext">Final de extendida</button><button type="button" class="ibtn" data-sec="leg">Final de legacy</button></span></label>
         <label class="f">Publicador<input id="f_pub" value="${esc(d.publisher)}"></label>
         <label class="f">Creador(es)<input id="f_cre" value="${esc(d.creator)}"></label>
         <label class="f">Verificador<input id="f_ver" value="${esc(d.verifier)}"></label>
@@ -1959,6 +1990,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       <div id="recs">${(d.records||[]).map(recRow).join("")}</div>
       <div class="btn-row"><button type="button" class="btn" id="addRec">+ Añadir récord</button><button type="button" class="btn" id="sortRec">Ordenar por progreso</button></div>
       <p class="hint" style="margin:6px 0 0">Arrastra con ⠿ para cambiar el orden en que salen los récords.</p>
+      ${opts.fromUp ? `<label class="hint" style="display:flex;gap:6px;align-items:center;margin-top:12px;font-weight:600"><input type="checkbox" id="f_rmUp" checked> Quitarlo de Futuros niveles al agregarlo</label>` : ""}
       <div class="foot">
         <span class="status" id="formStatus"></span>
         ${isNew ? "" : `<button type="button" class="btn danger" id="delBtn">Eliminar</button>`}
@@ -1967,6 +1999,21 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       </div></form>`, close => {
       $("#cancel").onclick = close;
       bindUploads($("#formStatus")); bindArt("f");
+      const others = isNew ? state.demons.length : state.demons.length - 1;
+      document.querySelectorAll("[data-sec]").forEach(b => b.onclick = () => {
+        const end = b.dataset.sec === "main" ? Math.min(state.mainSize, others+1) : b.dataset.sec === "ext" ? Math.min(state.extSize, others+1) : others+1;
+        $("#f_pos").value = Math.max(1, end);
+      });
+      $("#f_src")?.addEventListener("change", e => {
+        const pre = levelSource(e.target.value); if (!pre) return;
+        const set = (id, v) => { const el = $("#"+id); if (el && v !== undefined) el.value = v; };
+        set("f_name", pre.name); set("f_pub", pre.publisher); set("f_cre", pre.creator); set("f_lid", pre.levelId);
+        set("f_vid", pre.video); set("f_thumb", pre.thumb); set("f_notes", pre.notes); set("f_art", pre.art); set("f_pimg", pre.profileImg);
+        if (pre.verifier && !$("#f_ver").value.trim()) set("f_ver", pre.verifier);
+        if (pre.artOpacity !== undefined){ set("f_artop", pre.artOpacity); $("#f_artopv").textContent = pre.artOpacity + "%"; }
+        if (pre.artInProfile !== undefined) $("#f_artprof").checked = pre.artInProfile !== false;
+        $("#formStatus").textContent = "Datos copiados. Revísalos antes de guardar.";
+      });
       const bindRecDel = () => document.querySelectorAll("[data-del]").forEach(b => b.onclick = () => b.parentElement.remove());
       $("#addRec").onclick = () => { $("#recs").insertAdjacentHTML("beforeend", recRow()); bindRecDel(); };
       bindRecDel(); enableRowDrag($("#recs"));
@@ -1993,7 +2040,12 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         const arr = state.demons.filter(x=>x.id!==d.id);
         const p = Math.max(1, Math.min(arr.length+1, Number($("#f_pos").value)||arr.length+1));
         arr.splice(p-1, 0, nd);
-        save({...state, demons:arr}, {log:true}); close();
+        const next = {...state, demons:arr};
+        if (opts.fromUp && $("#f_rmUp")?.checked){
+          next.upcoming = (state.upcoming||[]).filter(u => u.id !== opts.fromUp);
+          if (openUp === opts.fromUp){ openUp = null; openDemon = nd.id; }
+        }
+        save(next, {log:true}); close();
       });
     });
   }
