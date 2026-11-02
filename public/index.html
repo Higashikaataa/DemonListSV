@@ -1389,7 +1389,9 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         <button type="button" data-kind="up" aria-pressed="${sendKind==="up"}">Futuro nivel</button>
       </div>
       <label class="f">Nivel
-        <select id="s_lv" required>${sendKind === "list" ? levelOptions() : ups.map(u => `<option value="${esc(u.id)}">${esc(u.name)}</option>`).join("")}</select></label>
+        <select id="s_lv" required>${sendKind === "list" ? levelOptions() : ups.map(u => `<option value="${esc(u.id)}">${esc(u.name)}</option>`).join("") + `<option value="new">+ Otro nivel (escribir el nombre)</option>`}</select></label>
+      <label class="f" id="s_neww" style="margin-top:10px" hidden>Nombre del nivel
+        <input id="s_new" maxlength="60" placeholder="Ej. Tartarus"></label>
       <p class="hint" id="s_rule" style="margin:6px 0 0"></p>
       <div class="grid2" style="margin-top:12px">
         <label class="f">Progreso (%)<input id="s_pr" type="number" min="1" max="100" required value="100"></label>
@@ -1431,7 +1433,12 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     document.querySelectorAll("[data-kind]").forEach(b => b.onclick = () => { sendKind = b.dataset.kind; render(); });
     const sel = $("#s_lv"), pr = $("#s_pr");
     const upd = () => {
-      if (sendKind === "up"){ $("#s_rule").textContent = (state.upcoming||[]).length ? "Pon el porcentaje que llevas en este nivel." : "Todavía no hay futuros niveles."; pr.min = 1; return; }
+      if (sendKind === "up"){
+        const isNew = sel.value === "new";
+        $("#s_neww").hidden = !isNew; $("#s_new").required = isNew;
+        $("#s_rule").textContent = isNew ? "Escribe el nombre del nivel. Si lo aceptan, se agrega a Futuros niveles." : "Pon el porcentaje que llevas en este nivel.";
+        pr.min = 1; return;
+      }
       const rule = levelRule(sel.value); $("#s_rule").textContent = rule.text; pr.min = rule.min;
       if (+pr.value < rule.min) pr.value = rule.min === 100 ? 100 : rule.min;
     };
@@ -1448,14 +1455,19 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         if (progress < 100 && progress < rule.min){ st.textContent = rule.text; return; }
         levelName = d.name;
       } else {
-        const u = (state.upcoming||[]).find(x => x.id === sel.value); if (!u){ st.textContent = "Elige un nivel."; return; }
-        levelName = u.name;
+        if (sel.value === "new"){
+          levelName = $("#s_new").value.trim();
+          if (levelName.length < 2){ st.textContent = "Escribe el nombre del nivel."; return; }
+        } else {
+          const u = (state.upcoming||[]).find(x => x.id === sel.value); if (!u){ st.textContent = "Elige un nivel."; return; }
+          levelName = u.name;
+        }
       }
       st.textContent = "Enviando…";
       try {
         await api("/api/envios", {kind: sendKind, levelId: sel.value, levelName, progress, video: $("#s_vid").value.trim(), note: $("#s_note").value.trim()});
         st.textContent = "¡Enviado! Un moderador lo revisará pronto.";
-        $("#s_vid").value = ""; $("#s_note").value = "";
+        $("#s_vid").value = ""; $("#s_note").value = ""; if ($("#s_new")) $("#s_new").value = "";
         loadMySubs();
       } catch (err) {
         st.textContent = err.message;
@@ -1477,6 +1489,12 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   }
   function subTarget(x){
     if (x.kind === "up"){
+      const findName = () => (state.upcoming||[]).find(y => pkey(y.name) === pkey(x.levelName));
+      if (x.levelId === "new"){
+        const same = findName();
+        return same ? {u: same, text: `Ya existe en Futuros niveles${same.player ? ` (ahora: ${same.player} con ${clampPct(same.progress)}%)` : ""}. Al aceptar se actualiza ese.`}
+                    : {isNew: true, text: "Nivel nuevo: al aceptar se agrega a Futuros niveles."};
+      }
       const u = (state.upcoming||[]).find(y => y.id === x.levelId);
       return u ? {u, text: u.player ? `Ahora: ${u.player} con ${clampPct(u.progress)}%` : "Nadie tiene progreso registrado"} : null;
     }
@@ -1493,7 +1511,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     if (!pending.length) return html + `<div class="empty"><strong>No hay récords pendientes</strong>Cuando un jugador envíe uno, aparecerá aquí.</div>`;
     return html + `<div class="sublist">${pending.map(x => {
       const t = subTarget(x);
-      const where = !t ? "" : x.kind === "up" ? "Futuro nivel" : `#${t.pos} · ${section(t.pos)==="main"?"Lista principal":section(t.pos)==="ext"?"Lista extendida":"Legacy"}`;
+      const where = !t ? "" : x.kind === "up" ? (t.isNew ? "Futuro nivel nuevo" : "Futuro nivel") : `#${t.pos} · ${section(t.pos)==="main"?"Lista principal":section(t.pos)==="ext"?"Lista extendida":"Legacy"}`;
       return `<div class="subitem">${avHTML(x.player, playerAvatar(x.player), 40)}<div class="stxt">
         <div class="sl">${plink(x.player)} · ${esc(x.levelName)} · ${x.progress}%</div>
         <div class="sm">${where ? esc(where) + " · " : ""}enviado ${new Date(x.date).toLocaleString("es")}</div>
@@ -1524,7 +1542,13 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       b.disabled = true;
       let next;
       if (x.kind === "up"){
-        next = {...state, upcoming: state.upcoming.map(u => u.id === x.levelId ? {...u, player:x.player, progress:x.progress, video:x.video} : u)};
+        if (t.isNew){
+          const nu = {id:uid(), name:x.levelName, publisher:"", creator:"", levelId:"", player:x.player, progress:x.progress, video:x.video, thumb:"", notes:""};
+          next = {...state, upcoming: [...(state.upcoming||[]), nu]};
+        } else {
+          const id = t.u.id;
+          next = {...state, upcoming: state.upcoming.map(u => u.id === id ? {...u, player:x.player, progress:x.progress, video:x.video} : u)};
+        }
       } else {
         next = {...state, demons: state.demons.map(d => {
           if (d.id !== x.levelId) return d;
