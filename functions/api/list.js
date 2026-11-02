@@ -56,6 +56,15 @@ export async function onRequestPut({ request, env }) {
   if (!data || !Array.isArray(data.demons)) return json({ error: "Falta la lista de demons." }, 400);
   delete data.profiles; delete data.accounts; // esto lo manejan las cuentas, no el editor
 
+  // Control de versiones: cada guardado dice sobre qué versión de la lista trabajó.
+  // Si otra persona guardó en medio, se rechaza para no borrar sus cambios.
+  const current = await env.LIST.get("main", "json");
+  const curRev = (current && Number(current.rev)) || 0;
+  const base = request.headers.get("x-base-rev");
+  if (base === null) return json({ error: "Tu página está desactualizada. Recárgala (Ctrl + Shift + R) y vuelve a hacer el cambio.", rev: curRev }, 409);
+  if (Number(base) !== curRev) return json({ error: "Otra persona guardó cambios antes que tú.", rev: curRev }, 409);
+
+  data.rev = curRev + 1;
   await env.LIST.put("main", JSON.stringify(data));
-  return json({ ok: true });
+  return json({ ok: true, rev: data.rev });
 }
