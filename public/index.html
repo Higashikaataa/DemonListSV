@@ -136,6 +136,10 @@ td.num{font-variant-numeric:tabular-nums;font-family:var(--display);font-weight:
 .bar{display:inline-block;width:70px;height:6px;border-radius:3px;background:var(--line);vertical-align:middle;margin-left:8px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--accent)}
 .bar i.full{background:var(--ok)}
+.bar.seg i{background:var(--warn)}
+.run-edit{grid-template-columns:auto minmax(0,1.2fr) 150px minmax(0,1.4fr) auto}
+.run-edit span input{width:100%;min-width:0}
+@media (max-width:520px){.run-edit{grid-template-columns:auto 1fr 130px auto}}
 /* modal */
 .overlay{position:fixed;inset:0;background:rgba(10,12,18,.55);z-index:20;display:grid;place-items:center;padding:16px}
 .modal{background:var(--surface);border:1px solid var(--line);border-radius:12px;width:min(640px,100%);max-height:calc(100% - 32px);overflow:auto;padding:20px}
@@ -144,9 +148,10 @@ td.num{font-variant-numeric:tabular-nums;font-family:var(--display);font-weight:
 @media (max-width:520px){.grid2{grid-template-columns:1fr}}
 label.f{display:flex;flex-direction:column;gap:4px;font-size:.82rem;font-weight:700;color:var(--muted);min-width:0}
 label.f input,label.f textarea,label.f select{font-weight:400;color:var(--fg);background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:8px 10px;min-width:0;width:100%}
-.rec-edit{display:grid;grid-template-columns:minmax(0,1.3fr) 80px minmax(0,1.6fr) auto;gap:6px;margin-bottom:6px}
+.rec-edit{display:grid;grid-template-columns:auto minmax(0,1.3fr) 80px minmax(0,1.6fr) auto;gap:6px;margin-bottom:6px;align-items:center;border-radius:8px}
+.rec-edit.dragging{outline:2px solid var(--accent);background:var(--surface);position:relative;z-index:2}
 .rec-edit input{background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:6px 8px;min-width:0;width:100%}
-@media (max-width:520px){.rec-edit{grid-template-columns:1fr 70px auto}.rec-edit .v{grid-column:1/-1;grid-row:2}}
+@media (max-width:520px){.rec-edit{grid-template-columns:auto 1fr 70px auto}.rec-edit .v{grid-column:2/-1;grid-row:2}}
 .modal .foot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px;align-items:center}
 .modal .foot .status{margin-right:auto}
 .sub{font-family:var(--display);font-size:.9rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:18px 0 8px}
@@ -237,6 +242,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       <button class="tab" role="tab" data-tab="ext" aria-selected="false">Extendida</button>
       <button class="tab" role="tab" data-tab="leg" aria-selected="false">Legacy</button>
       <button class="tab" role="tab" data-tab="up" aria-selected="false">Futuros niveles</button>
+      <button class="tab" role="tab" data-tab="runs" aria-selected="false">Hardest runs</button>
       <button class="tab" role="tab" data-tab="stats" aria-selected="false">Leaderboard</button>
       <button class="tab" role="tab" data-tab="roul" aria-selected="false">Ruleta</button>
       <button class="tab" role="tab" data-tab="send" aria-selected="false">Subir récord</button>
@@ -281,6 +287,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
           <div class="btn-row">
             <button class="btn primary" id="addDemon">+ Agregar demon</button>
             <button class="btn" id="addUp">+ Futuro nivel</button>
+            <button class="btn" id="addRun">+ Hardest run</button>
             <button class="btn" id="editSite">Editar sitio</button>
           </div>
           <button class="btn" id="openJson">Importar / exportar JSON</button>
@@ -302,7 +309,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
 
   let state = { title:"Demonlist", tagline:"", about:"", discordUrl:"", submitUrl:"", mainSize:75, extSize:150, demons:[], upcoming:[], changelog:[], players:{}, mods:[] };
   let loaded = false, editing = false, password = "";
-  let tab = "main", openDemon = null, openUp = null, query = "";
+  let tab = "main", openDemon = null, openUp = null, openRun = null, query = "";
   let me = null, session = "", pending = null, pendingErr = "", mySubs = null;
   try { session = localStorage.getItem("dl_session") || ""; } catch {}
   const cssUrl = v => esc(String(v||"").replace(/['"()\\\s<>]/g, c => "%" + c.charCodeAt(0).toString(16).padStart(2,"0")));
@@ -337,7 +344,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     const players = new Map();
     const get = name => {
       const k = name.toLowerCase();
-      if (!players.has(k)) players.set(k, {name, pts:0, entries:[]});
+      if (!players.has(k)) players.set(k, {name, pts:0, entries:[], runs:[]});
       return players.get(k);
     };
     state.demons.forEach((d,i) => {
@@ -369,6 +376,18 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       const name = (u.player||"").trim(); if (!name) return;
       get(name).entries.push({d:u, pos:null, upPos:i+1, progress:clampPct(u.progress), pts:0, verified:false, upcoming:true, video:u.video});
     });
+    // Hardest runs (no dan puntos): el mejor run de cada jugador en cada nivel
+    (state.runs||[]).forEach((d,i) => {
+      const best = new Map();
+      for (const rr of d.records||[]){
+        const name = (rr.player||"").trim(); if (!name) continue;
+        const k = name.toLowerCase(), cur = best.get(k);
+        if (!cur || runBetter(rr, cur)) best.set(k, rr);
+      }
+      best.forEach(rr => get(rr.player.trim()).runs.push({d, pos:i+1, from:clampPct(rr.from), progress:clampPct(rr.to), pts:0, run:true, video:rr.video}));
+    });
+    // Jugadores con cuenta aunque no tengan récords
+    (state.accounts||[]).forEach(n => { if (String(n||"").trim()) get(String(n).trim()); });
     const rows = [...players.values()].sort((a,b)=>b.pts-a.pts || a.name.localeCompare(b.name));
     rows.forEach((p,i) => p.rank = i+1);
     return rows;
@@ -577,7 +596,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     $("#topLinks").innerHTML =
       (state.discordUrl ? `<a class="btn" href="${esc(state.discordUrl)}" target="_blank" rel="noopener">Discord</a>` : "") +
       (state.submitUrl ? `<a class="btn primary" href="${esc(state.submitUrl)}" target="_blank" rel="noopener">Subir récord</a>` : "");
-    document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === tab && !openDemon && !openPlayer && !openUp)));
+    document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === tab && !openDemon && !openPlayer && !openUp && !openRun)));
     renderAccount();
     $("#pendTab").hidden = !editing;
     if (!editing && tab === "pend") tab = "main";
@@ -590,10 +609,13 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     $("#loginBox").hidden = editing;
     $("#editorTools").hidden = !editing;
     if (!loaded) return;
+    syncHash();
     const v = $("#view");
     if (openDemon){ v.innerHTML = detailHTML(); bindDetail(); bindPlayerLinks(); return; }
     if (openPlayer){ v.innerHTML = profileHTML(); bindProfile(); return; }
     if (openUp){ v.innerHTML = upDetailHTML(); bindUpDetail(); return; }
+    if (openRun){ v.innerHTML = runDetailHTML(); bindRunDetail(); bindPlayerLinks(); return; }
+    if (tab === "runs"){ v.innerHTML = runsListHTML(); bindRunsList(); return; }
     if (tab === "up"){ v.innerHTML = upListHTML(); bindUpList(); return; }
     if (tab === "stats"){ v.innerHTML = statsHTML(); bindPlayerLinks(); return; }
     if (tab === "roul"){ v.innerHTML = roulHTML(); bindRoul(); return; }
@@ -660,7 +682,8 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     if (e.button !== undefined && e.button !== 0) return;
     e.preventDefault(); e.stopPropagation();
     const row = e.target.closest(".row"), list = row.parentElement;
-    const before = [...list.querySelectorAll(".row")].map(x => x.dataset.open);
+    const rid = x => x.dataset.open || x.dataset.ropen, key = list.dataset.src === "runs" ? "runs" : "demons";
+    const before = [...list.querySelectorAll(".row")].map(rid);
     row.classList.add("dragging"); document.body.classList.add("is-dragging");
     let lastY = e.clientY, scrollTimer = null;
     const place = y => {
@@ -681,14 +704,15 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       clearInterval(scrollTimer);
       window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", end); window.removeEventListener("pointercancel", end);
       row.classList.remove("dragging"); document.body.classList.remove("is-dragging");
-      const after = [...list.querySelectorAll(".row")].map(x => x.dataset.open);
+      const after = [...list.querySelectorAll(".row")].map(rid);
       if (after.join() === before.join()) return;
       // La pestaña muestra un tramo seguido de la lista: se reemplaza ese tramo con el nuevo orden
-      const start = state.demons.findIndex(d => d.id === before[0]);
-      const byId = new Map(state.demons.map(d => [d.id, d]));
-      const arr = state.demons.slice();
+      const src = state[key] || [];
+      const start = src.findIndex(d => d.id === before[0]);
+      const byId = new Map(src.map(d => [d.id, d]));
+      const arr = src.slice();
       arr.splice(start, after.length, ...after.map(id => byId.get(id)));
-      save({...state, demons:arr}, {log:true});
+      save({...state, [key]:arr}, {log: key === "demons"});
     };
     window.addEventListener("pointermove", move); window.addEventListener("pointerup", end); window.addEventListener("pointercancel", end);
   }
@@ -698,7 +722,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     if (i < 0){ openDemon = null; return listHTML(); }
     const d = state.demons[i], pos = i+1, sec = section(pos);
     const chip = sec==="main" ? `<span class="chip">Principal</span>` : sec==="ext" ? `<span class="chip ext">Extendida</span>` : `<span class="chip leg">Legacy</span>`;
-    const recs = (d.records||[]).slice().sort((a,b)=>b.progress-a.progress);
+    const recs = (d.records||[]).slice(); // en el orden que pongan los moderadores
     const video = ytLink(d.video), ts = thumbSrc(d), req = reqFor(d,pos);
     const progOk = basePoints(pos) && pos <= state.mainSize && req < 100;
     let html = `<button class="back" id="back">← Volver a la lista</button>
@@ -765,7 +789,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   function profileHTML(){
     const rows = buildPlayers();
     let p = rows.find(x => x.name.toLowerCase() === openPlayer);
-    if (!p && me && me.k === openPlayer) p = {name: me.name, pts: 0, entries: [], rank: "—"};
+    if (!p && me && me.k === openPlayer) p = {name: me.name, pts: 0, entries: [], runs: [], rank: "—"};
     let html = `<button class="back" id="pback">← Volver al leaderboard</button>`;
     if (!p) return html + `<div class="empty"><strong>Jugador no encontrado</strong>Puede que lo hayan renombrado o quitado de la lista.</div>`;
     const listed = p.entries.filter(e => !e.upcoming);
@@ -778,9 +802,9 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     const lvRow = (e, withPct) => {
       const src = profileImg(e.d);
       const bg = src ? ` style="--img:url('${cssUrl(src)}')"` : "";
-      const attr = e.upcoming ? `data-upopen="${e.d.id}"` : `data-demon="${e.d.id}"`;
+      const attr = e.run ? `data-ropen="${e.d.id}"` : e.upcoming ? `data-upopen="${e.d.id}"` : `data-demon="${e.d.id}"`;
       const label = e.upcoming ? "Futuro" : "#"+e.pos;
-      const right = e.upcoming ? `${e.progress}%` : (withPct ? `${e.progress}% · ` : "") + `+${fmt(e.pts)}`;
+      const right = e.run ? `${e.from}–${e.progress}%` : e.upcoming ? `${e.progress}%` : (withPct ? `${e.progress}% · ` : "") + `+${fmt(e.pts)}`;
       return `<button class="lvrow" ${attr}><span class="lvimg${src?" has":""}"${bg}></span><span class="lvpos">${label}</span><span class="lvname">${esc(e.d.name)}</span><span class="lvpts">${right}</span></button>`;
     };
     const chips = (list, withPct) => list.length
@@ -824,6 +848,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         ${sectionBlock("Verificados", verified, false)}
         ${sectionBlock("Completados", done, false)}
         ${sectionBlock("En progreso", prog, true, upProg)}
+        <div class="panel"><h3>Hardest runs · ${p.runs.length}</h3>${chips(p.runs.slice().sort((a,b)=>a.pos-b.pos), false)}</div>
       </div>`;
     return html;
   }
@@ -836,6 +861,9 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     }));
     document.querySelectorAll("[data-upopen]").forEach(b => b.addEventListener("click", () => {
       openUp = b.dataset.upopen; openPlayer = null; tab = "up"; render(); window.scrollTo({top:0});
+    }));
+    document.querySelectorAll("[data-ropen]").forEach(b => b.addEventListener("click", () => {
+      openRun = b.dataset.ropen; openPlayer = null; tab = "runs"; render(); window.scrollTo({top:0});
     }));
   }
 
@@ -1098,6 +1126,169 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   }
 
 
+
+  // ---------- hardest runs ----------
+  const runSpan = rr => clampPct(rr.to) - clampPct(rr.from);
+  const runBetter = (a, b) => runSpan(a) > runSpan(b) || (runSpan(a) === runSpan(b) && clampPct(a.to) > clampPct(b.to));
+  function bestRun(d){ return (d.records||[]).reduce((a, rr) => !a || runBetter(rr, a) ? rr : a, null); }
+  const runBar = rr => { const f = clampPct(rr.from), t = clampPct(rr.to); return `<span class="bar seg"><i class="${t>=100&&f===0?"full":""}" style="margin-left:${f}%;width:${Math.max(0,t-f)}%"></i></span>`; };
+  function runsListHTML(){
+    const all = (state.runs||[]).map((d,i) => ({d, pos:i+1}));
+    const q = query.trim().toLowerCase();
+    const items = q ? all.filter(x => [x.d.name, x.d.creator, x.d.publisher, ...(x.d.records||[]).map(rr => rr.player)].join(" ").toLowerCase().includes(q)) : all;
+    let html = `<div class="section-head"><h2>Hardest runs</h2><span class="count">${all.length} ${all.length===1?"nivel":"niveles"} con runs destacados</span>
+      <input class="search" id="search" type="search" placeholder="Buscar nivel o jugador" value="${esc(query)}" aria-label="Buscar"></div>`;
+    if (!all.length) return html + `<div class="empty"><strong>Todavía no hay hardest runs</strong>${editing ? "Pulsa “+ Hardest run” en el panel del editor para agregar un nivel." : "Aquí saldrán los runs más difíciles, como un 20–100% en un nivel extremo."}</div>`;
+    if (!items.length) return html + `<div class="empty"><strong>Sin resultados</strong>Prueba con otro nombre.</div>`;
+    html += `<div class="list" data-src="runs">`;
+    for (const {d,pos} of items){
+      const b = bestRun(d), pc = pos<=3 ? " p"+pos : "";
+      const tools = editing ? `<div class="edit-tools" data-stop>
+          ${q ? "" : `<span class="drag" data-drag="${d.id}" title="Arrastra para mover" aria-label="Arrastrar para mover">⠿</span>`}
+          <button class="ibtn" data-ract="up" data-id="${d.id}" ${pos===1?"disabled":""} aria-label="Subir">▲</button>
+          <button class="ibtn" data-ract="down" data-id="${d.id}" ${pos===all.length?"disabled":""} aria-label="Bajar">▼</button>
+          <button class="ibtn" data-ract="edit" data-id="${d.id}">Editar</button></div>`
+        : `<div class="pts pct">${b ? `${clampPct(b.from)}–${clampPct(b.to)}%` : "—"}<small>mejor run</small></div>`;
+      html += `<div class="row" role="button" tabindex="0" data-ropen="${d.id}">
+        ${thumbHTML(d,pos)}
+        <div class="row-main">
+          <div class="row-title"><span class="pos${pc}">#${pos}</span><span class="name">${esc(d.name)}</span></div>
+          <div class="meta">${b ? "mejor run de " + esc(b.player) + " · " : ""}${(d.records||[]).length} ${(d.records||[]).length===1?"run":"runs"}${d.publisher||d.creator ? " · publicado por " + esc(d.publisher||d.creator) : ""}</div>
+          ${b ? `<div style="margin-top:6px">${runBar(b).replace('class="bar seg"','class="bar seg" style="margin-left:0;width:140px;max-width:100%"')}</div>` : ""}
+        </div>
+        ${tools}
+      </div>`;
+    }
+    return html + `</div>`;
+  }
+  function bindRunsList(){
+    const s = $("#search");
+    if (s) s.addEventListener("input", e => { query = e.target.value; const p = e.target.selectionStart; render(); const n=$("#search"); n.focus(); n.setSelectionRange(p,p); });
+    document.querySelectorAll("[data-ropen]").forEach(row => {
+      const go = e => { if (e.target.closest("[data-stop]")) return; openRun = row.dataset.ropen; render(); window.scrollTo({top:0}); };
+      row.addEventListener("click", go);
+      row.addEventListener("keydown", e => { if (e.key==="Enter"||e.key===" "){ e.preventDefault(); go(e);} });
+    });
+    document.querySelectorAll("[data-ract]").forEach(b => b.addEventListener("click", e => {
+      e.stopPropagation();
+      const arr = (state.runs||[]).slice(), i = arr.findIndex(d => d.id === b.dataset.id);
+      if (b.dataset.ract === "edit") return openRunForm(arr[i]);
+      const j = b.dataset.ract === "up" ? i-1 : i+1;
+      if (j<0 || j>=arr.length) return;
+      [arr[i],arr[j]] = [arr[j],arr[i]];
+      save({...state, runs:arr});
+    }));
+    document.querySelectorAll("[data-drag]").forEach(h => h.addEventListener("pointerdown", startDrag));
+  }
+  function runDetailHTML(){
+    const i = (state.runs||[]).findIndex(x => x.id === openRun);
+    if (i < 0){ openRun = null; return runsListHTML(); }
+    const d = state.runs[i], pos = i+1, ts = thumbSrc(d), video = ytLink(d.video);
+    const recs = (d.records||[]).slice(); // en el orden que pongan los moderadores
+    let html = `<button class="back" id="rback">← Volver a hardest runs</button>
+    ${stageOpen(d)}
+    <div class="detail-hero">
+      ${ts ? `<div class="thumb"><img src="${esc(ts)}" alt="Miniatura de ${esc(d.name)}"></div>` : `<div class="thumb"><span class="ph">#${pos}</span></div>`}
+      <div style="min-width:0">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px"><span class="pos${pos<=3?" p"+pos:""}">#${pos}</span><span class="chip ext">Hardest runs</span></div>
+        <h2>${esc(d.name)}</h2>
+        <div class="facts">
+          <div class="fact"><span>Publicador</span><b>${esc(d.publisher||"—")}</b></div>
+          <div class="fact"><span>Creador(es)</span><b>${esc(d.creator||"—")}</b></div>
+          <div class="fact"><span>ID del nivel</span><b>${esc(d.levelId||"—")}</b></div>
+          <div class="fact"><span>Mejor run</span><b>${bestRun(d) ? `${clampPct(bestRun(d).from)}–${clampPct(bestRun(d).to)}%` : "—"}</b></div>
+        </div>
+        <div class="btn-row" style="margin-top:14px">
+          ${video ? `<a class="btn" href="${esc(video)}" target="_blank" rel="noopener">Ver video del nivel ↗</a>` : ""}
+          ${editing ? `<button class="btn primary" id="editRun">Editar nivel</button>` : ""}
+        </div>
+      </div>
+    </div>
+    ${d.notes ? `<div class="panel" style="margin-top:16px"><h3>Notas</h3><p>${esc(d.notes)}</p></div>` : ""}
+    <div class="section-head" style="margin-top:22px;margin-bottom:0"><h2>Runs</h2><span class="count">${recs.length} ${recs.length===1?"run":"runs"}</span></div>`;
+    if (!recs.length) return html + `<div class="empty" style="margin-top:12px"><strong>Sin runs aún</strong>${editing ? "Pulsa “Editar nivel” para añadir runs." : "Sube tu run en la pestaña “Subir récord”."}</div></div>`;
+    html += `<div class="tablebox"><table><thead><tr><th>Jugador</th><th>Run</th><th>Video</th></tr></thead><tbody>`;
+    for (const rr of recs){
+      html += `<tr><td>${rr.player ? plink(rr.player.trim()) : "—"}</td><td class="num">${clampPct(rr.from)}–${clampPct(rr.to)}% ${runBar(rr)}</td>
+        <td>${rr.video ? `<a href="${esc(ytLink(rr.video))}" target="_blank" rel="noopener">Abrir ↗</a>` : "—"}</td></tr>`;
+    }
+    return html + `</tbody></table></div></div>`;
+  }
+  function bindRunDetail(){
+    $("#rback")?.addEventListener("click", () => { openRun = null; tab = "runs"; render(); });
+    $("#editRun")?.addEventListener("click", () => openRunForm((state.runs||[]).find(x => x.id === openRun)));
+  }
+  function runRow(rr={player:"", from:20, to:100, video:""}){
+    return `<div class="rec-edit run-edit">${rowHandle}<input placeholder="Jugador" value="${esc(rr.player)}" data-k="player" aria-label="Jugador">
+      <span style="display:flex;gap:4px;align-items:center"><input type="number" min="0" max="99" value="${esc(clampPct(rr.from))}" data-k="from" aria-label="Desde %">–<input type="number" min="1" max="100" value="${esc(clampPct(rr.to))}" data-k="to" aria-label="Hasta %"></span>
+      <input class="v" placeholder="Video (link de YouTube)" value="${esc(rr.video)}" data-k="video" aria-label="Video">
+      <button type="button" class="ibtn" data-del aria-label="Quitar run">✕</button></div>`;
+  }
+  function openRunForm(d){
+    const isNew = !d, list = state.runs||[];
+    d = d || {id:uid(), name:"", publisher:"", creator:"", levelId:"", video:"", thumb:"", notes:"", records:[]};
+    const curPos = isNew ? list.length+1 : list.findIndex(x=>x.id===d.id)+1;
+    const max = isNew ? list.length+1 : list.length;
+    modal(`<h3>${isNew?"Agregar hardest run":"Editar hardest run"}</h3>
+      <form id="rf">
+      <div class="grid2">
+        <label class="f">Nombre del nivel<input id="r_name" required value="${esc(d.name)}"></label>
+        <label class="f">Posición (1–${max})<input id="r_pos" type="number" min="1" max="${max}" value="${curPos}"></label>
+        <label class="f">Publicador<input id="r_pub" value="${esc(d.publisher)}"></label>
+        <label class="f">Creador(es)<input id="r_cre" value="${esc(d.creator)}"></label>
+        <label class="f">ID del nivel<input id="r_lid" value="${esc(d.levelId)}"></label>
+        <label class="f">Video del nivel <span class="hint">para la miniatura</span><input id="r_vid" placeholder="Link de YouTube" value="${esc(d.video)}"></label>
+      </div>
+      <label class="f" style="margin-top:12px">Miniatura personalizada <span class="hint">Opcional. Si la dejas vacía se usa la del video de YouTube.</span>
+        ${imgField("r_thumb", d.thumb, "URL de una imagen")}</label>
+      ${artFields("r", d)}
+      <label class="f" style="margin-top:12px">Notas<textarea id="r_notes" rows="2">${esc(d.notes)}</textarea></label>
+      <div class="sub">Runs</div>
+      <div id="runs">${(d.records||[]).map(runRow).join("")}</div>
+      <div class="btn-row"><button type="button" class="btn" id="addRunRec">+ Añadir run</button><button type="button" class="btn" id="sortRun">Ordenar por mejor run</button></div>
+      <p class="hint" style="margin:6px 0 0">Arrastra con ⠿ para cambiar el orden en que salen los runs.</p>
+      <div class="foot">
+        <span class="status" id="rStatus"></span>
+        ${isNew ? "" : `<button type="button" class="btn danger" id="rDel">Eliminar</button>`}
+        <button type="button" class="btn" id="cancel">Cancelar</button>
+        <button type="submit" class="btn primary">${isNew?"Agregar":"Guardar"}</button>
+      </div></form>`, close => {
+      $("#cancel").onclick = close;
+      bindUploads($("#rStatus")); bindArt("r");
+      const bindDel = () => document.querySelectorAll("#runs [data-del]").forEach(b => b.onclick = () => b.closest(".rec-edit").remove());
+      $("#addRunRec").onclick = () => { $("#runs").insertAdjacentHTML("beforeend", runRow()); bindDel(); };
+      bindDel(); enableRowDrag($("#runs"));
+      $("#sortRun").onclick = () => {
+        const box = $("#runs"), val = (row,k) => clampPct(row.querySelector(`[data-k="${k}"]`).value);
+        const rr = row => ({from: val(row,"from"), to: val(row,"to")});
+        [...box.children].sort((a,b) => runBetter(rr(a), rr(b)) ? -1 : runBetter(rr(b), rr(a)) ? 1 : 0).forEach(x => box.appendChild(x));
+      };
+      const del = $("#rDel");
+      if (del) del.onclick = () => {
+        if (del.dataset.confirm){ if (openRun===d.id) openRun=null; save({...state, runs:list.filter(x=>x.id!==d.id)}); close(); }
+        else { del.dataset.confirm = "1"; del.textContent = "¿Seguro? Pulsa otra vez"; }
+      };
+      $("#rf").addEventListener("submit", e => {
+        e.preventDefault();
+        const recs = [...document.querySelectorAll("#runs .rec-edit")].map(row => ({
+          player: row.querySelector('[data-k="player"]').value.trim(),
+          from: clampPct(row.querySelector('[data-k="from"]').value),
+          to: clampPct(row.querySelector('[data-k="to"]').value),
+          video: row.querySelector('[data-k="video"]').value.trim()
+        })).filter(x => x.player);
+        const bad = recs.find(x => x.from >= x.to);
+        if (bad){ $("#rStatus").textContent = `El run de ${bad.player} debe empezar antes de donde termina.`; return; }
+        const nd = {...d, name:$("#r_name").value.trim(), publisher:$("#r_pub").value.trim(), creator:$("#r_cre").value.trim(),
+          levelId:$("#r_lid").value.trim(), video:$("#r_vid").value.trim(), thumb:$("#r_thumb").value.trim(), notes:$("#r_notes").value.trim(), records:recs, ...readArt("r")};
+        if (!nd.name){ $("#rStatus").textContent = "Escribe el nombre del nivel."; return; }
+        const arr = list.filter(x=>x.id!==d.id);
+        const p = Math.max(1, Math.min(arr.length+1, Number($("#r_pos").value)||arr.length+1));
+        arr.splice(p-1, 0, nd);
+        save({...state, runs:arr}); close();
+      });
+    });
+  }
+
   // ---------- campos de imagen personalizada por nivel ----------
   function artFields(px, d){
     const op = Number(d.artOpacity ?? 35);
@@ -1230,6 +1421,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   }
   function setSession(token, name){
     session = token; me = {name, k: pkey(name)};
+    if (!(state.accounts||[]).some(n => pkey(n) === me.k)) state.accounts = [...(state.accounts||[]), name];
     try { localStorage.setItem("dl_session", token); } catch {}
   }
   function clearSession(){
@@ -1387,14 +1579,16 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       <div class="seg" role="group" aria-label="Tipo de nivel">
         <button type="button" data-kind="list" aria-pressed="${sendKind==="list"}">Nivel de la lista</button>
         <button type="button" data-kind="up" aria-pressed="${sendKind==="up"}">Futuro nivel</button>
+        <button type="button" data-kind="run" aria-pressed="${sendKind==="run"}">Hardest run</button>
       </div>
       <label class="f">Nivel
-        <select id="s_lv" required>${sendKind === "list" ? levelOptions() : ups.map(u => `<option value="${esc(u.id)}">${esc(u.name)}</option>`).join("") + `<option value="new">+ Otro nivel (escribir el nombre)</option>`}</select></label>
+        <select id="s_lv" required>${sendKind === "list" ? levelOptions() : (sendKind === "run" ? (state.runs||[]) : ups).map(u => `<option value="${esc(u.id)}">${esc(u.name)}</option>`).join("") + `<option value="new">+ Otro nivel (escribir el nombre)</option>`}</select></label>
       <label class="f" id="s_neww" style="margin-top:10px" hidden>Nombre del nivel
         <input id="s_new" maxlength="60" placeholder="Ej. Tartarus"></label>
       <p class="hint" id="s_rule" style="margin:6px 0 0"></p>
       <div class="grid2" style="margin-top:12px">
-        <label class="f">Progreso (%)<input id="s_pr" type="number" min="1" max="100" required value="100"></label>
+        ${sendKind === "run" ? `<label class="f">Desde (%)<input id="s_from" type="number" min="0" max="99" required value="20"></label>` : ""}
+        <label class="f">${sendKind === "run" ? "Hasta (%)" : "Progreso (%)"}<input id="s_pr" type="number" min="1" max="100" required value="100"></label>
         <label class="f">Jugador<input value="${esc(me.name)}" disabled></label>
       </div>
       <label class="f" style="margin-top:12px">Link del video de YouTube
@@ -1410,8 +1604,8 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     if (!mySubs) return `<p class="hint" style="margin:0">Cargando…</p>`;
     if (!mySubs.length) return `<p class="hint" style="margin:0">No tienes envíos esperando revisión.</p>`;
     return `<div class="sublist">${mySubs.map(x => `<div class="subitem" style="grid-template-columns:minmax(0,1fr)"><div class="stxt">
-      <div class="sl">${esc(x.levelName)} · ${x.progress}%</div>
-      <div class="sm">${x.kind === "up" ? "Futuro nivel · " : ""}enviado ${new Date(x.date).toLocaleDateString("es")}</div></div>
+      <div class="sl">${esc(x.levelName)} · ${x.kind === "run" ? x.from + "–" : ""}${x.progress}%</div>
+      <div class="sm">${x.kind === "up" ? "Futuro nivel · " : x.kind === "run" ? "Hardest run · " : ""}enviado ${new Date(x.date).toLocaleDateString("es")}</div></div>
       <div class="sacts"><a href="${esc(x.video)}" target="_blank" rel="noopener">Video ↗</a><button class="ibtn" data-cancel="${esc(x.id)}">Cancelar envío</button></div></div>`).join("")}</div>`;
   }
   async function loadMySubs(){
@@ -1433,10 +1627,11 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     document.querySelectorAll("[data-kind]").forEach(b => b.onclick = () => { sendKind = b.dataset.kind; render(); });
     const sel = $("#s_lv"), pr = $("#s_pr");
     const upd = () => {
-      if (sendKind === "up"){
-        const isNew = sel.value === "new";
+      if (sendKind === "up" || sendKind === "run"){
+        const isNew = sel.value === "new", where = sendKind === "run" ? "Hardest runs" : "Futuros niveles";
         $("#s_neww").hidden = !isNew; $("#s_new").required = isNew;
-        $("#s_rule").textContent = isNew ? "Escribe el nombre del nivel. Si lo aceptan, se agrega a Futuros niveles." : "Pon el porcentaje que llevas en este nivel.";
+        $("#s_rule").textContent = isNew ? `Escribe el nombre del nivel. Si lo aceptan, se agrega a ${where}.`
+          : sendKind === "run" ? "Pon dónde empieza y dónde termina tu run, por ejemplo de 20% a 100%." : "Pon el porcentaje que llevas en este nivel.";
         pr.min = 1; return;
       }
       const rule = levelRule(sel.value); $("#s_rule").textContent = rule.text; pr.min = rule.min;
@@ -1459,13 +1654,15 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
           levelName = $("#s_new").value.trim();
           if (levelName.length < 2){ st.textContent = "Escribe el nombre del nivel."; return; }
         } else {
-          const u = (state.upcoming||[]).find(x => x.id === sel.value); if (!u){ st.textContent = "Elige un nivel."; return; }
+          const u = (sendKind === "run" ? (state.runs||[]) : (state.upcoming||[])).find(x => x.id === sel.value); if (!u){ st.textContent = "Elige un nivel."; return; }
           levelName = u.name;
         }
       }
+      const from = sendKind === "run" ? Math.round(+$("#s_from").value) : 0;
+      if (sendKind === "run" && !(from >= 0 && from < progress)){ st.textContent = "El run debe empezar antes de donde termina (ej. 20 a 100)."; return; }
       st.textContent = "Enviando…";
       try {
-        await api("/api/envios", {kind: sendKind, levelId: sel.value, levelName, progress, video: $("#s_vid").value.trim(), note: $("#s_note").value.trim()});
+        await api("/api/envios", {kind: sendKind, levelId: sel.value, levelName, progress, from, video: $("#s_vid").value.trim(), note: $("#s_note").value.trim()});
         st.textContent = "¡Enviado! Un moderador lo revisará pronto.";
         $("#s_vid").value = ""; $("#s_note").value = ""; if ($("#s_new")) $("#s_new").value = "";
         loadMySubs();
@@ -1488,6 +1685,13 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     render();
   }
   function subTarget(x){
+    if (x.kind === "run"){
+      const runs = state.runs||[];
+      const r0 = x.levelId === "new" ? runs.find(y => pkey(y.name) === pkey(x.levelName)) : runs.find(y => y.id === x.levelId);
+      if (!r0) return x.levelId === "new" ? {isNew: true, text: "Nivel nuevo: al aceptar se agrega a Hardest runs."} : null;
+      const cur = (r0.records||[]).filter(rr => pkey(rr.player) === pkey(x.player)).sort((a,b) => runBetter(a,b) ? -1 : 1)[0];
+      return {r: r0, pos: runs.indexOf(r0)+1, text: (x.levelId === "new" ? "Ya existe en Hardest runs. " : "") + (cur ? `Su mejor run ahora: ${clampPct(cur.from)}–${clampPct(cur.to)}%` : "Run nuevo para este jugador")};
+    }
     if (x.kind === "up"){
       const findName = () => (state.upcoming||[]).find(y => pkey(y.name) === pkey(x.levelName));
       if (x.levelId === "new"){
@@ -1511,9 +1715,9 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     if (!pending.length) return html + `<div class="empty"><strong>No hay récords pendientes</strong>Cuando un jugador envíe uno, aparecerá aquí.</div>`;
     return html + `<div class="sublist">${pending.map(x => {
       const t = subTarget(x);
-      const where = !t ? "" : x.kind === "up" ? (t.isNew ? "Futuro nivel nuevo" : "Futuro nivel") : `#${t.pos} · ${section(t.pos)==="main"?"Lista principal":section(t.pos)==="ext"?"Lista extendida":"Legacy"}`;
+      const where = !t ? "" : x.kind === "run" ? (t.isNew ? "Hardest run nuevo" : `Hardest runs #${t.pos}`) : x.kind === "up" ? (t.isNew ? "Futuro nivel nuevo" : "Futuro nivel") : `#${t.pos} · ${section(t.pos)==="main"?"Lista principal":section(t.pos)==="ext"?"Lista extendida":"Legacy"}`;
       return `<div class="subitem">${avHTML(x.player, playerAvatar(x.player), 40)}<div class="stxt">
-        <div class="sl">${plink(x.player)} · ${esc(x.levelName)} · ${x.progress}%</div>
+        <div class="sl">${plink(x.player)} · ${esc(x.levelName)} · ${x.kind === "run" ? x.from + "–" : ""}${x.progress}%</div>
         <div class="sm">${where ? esc(where) + " · " : ""}enviado ${new Date(x.date).toLocaleString("es")}</div>
         ${t ? `<div class="sm">${esc(t.text)}</div>` : `<div class="warn">Ese nivel ya no existe en la lista. Solo se puede rechazar.</div>`}
         ${x.note ? `<div class="sm">Nota: “${esc(x.note)}”</div>` : ""}</div>
@@ -1541,7 +1745,20 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       const t = subTarget(x); if (!t) return;
       b.disabled = true;
       let next;
-      if (x.kind === "up"){
+      if (x.kind === "run"){
+        const rec = {player:x.player, from:x.from||0, to:x.progress, video:x.video};
+        if (t.isNew){
+          next = {...state, runs: [...(state.runs||[]), {id:uid(), name:x.levelName, publisher:"", creator:"", levelId:"", video:"", thumb:"", notes:"", records:[rec]}]};
+        } else {
+          const id = t.r.id;
+          next = {...state, runs: state.runs.map(d => {
+            if (d.id !== id) return d;
+            const recs = (d.records||[]).slice(), i = recs.findIndex(rr => pkey(rr.player) === pkey(x.player));
+            if (i < 0) recs.push(rec); else if (runBetter(rec, recs[i]) || runSpan(rec) === runSpan(recs[i])) recs[i] = rec;
+            return {...d, records:recs};
+          })};
+        }
+      } else if (x.kind === "up"){
         if (t.isNew){
           const nu = {id:uid(), name:x.levelName, publisher:"", creator:"", levelId:"", player:x.player, progress:x.progress, video:x.video, thumb:"", notes:""};
           next = {...state, upcoming: [...(state.upcoming||[]), nu]};
@@ -1622,8 +1839,39 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   }
   function logout(){ editing = false; password = ""; pending = null; try { sessionStorage.removeItem("dl_pw"); } catch {} setStatus(""); render(); }
 
+  // Arrastrar filas dentro de un formulario (récords y runs)
+  const rowHandle = `<span class="drag" data-rowdrag title="Arrastra para mover" aria-label="Arrastrar para mover">⠿</span>`;
+  function enableRowDrag(box){
+    box.addEventListener("pointerdown", e => {
+      const h = e.target.closest("[data-rowdrag]"); if (!h || (e.button !== undefined && e.button !== 0)) return;
+      e.preventDefault();
+      const row = h.closest(".rec-edit"), scroller = box.closest(".modal");
+      row.classList.add("dragging"); document.body.classList.add("is-dragging");
+      let lastY = e.clientY;
+      const place = y => {
+        const rows = [...box.children].filter(x => x !== row);
+        let target = null;
+        for (const x of rows){ const b = x.getBoundingClientRect(); if (y < b.top + b.height/2){ target = x; break; } }
+        if (target){ if (row.nextElementSibling !== target) box.insertBefore(row, target); }
+        else if (box.lastElementChild !== row) box.appendChild(row);
+      };
+      const timer = setInterval(() => {
+        if (!scroller) return;
+        const b = scroller.getBoundingClientRect();
+        if (lastY < b.top + 50) scroller.scrollTop -= 12; else if (lastY > b.bottom - 50) scroller.scrollTop += 12; else return;
+        place(lastY);
+      }, 30);
+      const move = ev => { lastY = ev.clientY; place(ev.clientY); };
+      const end = () => {
+        clearInterval(timer);
+        window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", end); window.removeEventListener("pointercancel", end);
+        row.classList.remove("dragging"); document.body.classList.remove("is-dragging");
+      };
+      window.addEventListener("pointermove", move); window.addEventListener("pointerup", end); window.addEventListener("pointercancel", end);
+    });
+  }
   function recRow(r={player:"",progress:100,video:""}){
-    return `<div class="rec-edit"><input placeholder="Jugador" value="${esc(r.player)}" data-k="player" aria-label="Jugador">
+    return `<div class="rec-edit">${rowHandle}<input placeholder="Jugador" value="${esc(r.player)}" data-k="player" aria-label="Jugador">
       <input type="number" min="0" max="100" value="${esc(r.progress)}" data-k="progress" aria-label="Progreso %">
       <input class="v" placeholder="Video (link de YouTube)" value="${esc(r.video)}" data-k="video" aria-label="Video">
       <button type="button" class="ibtn" data-del aria-label="Quitar récord">✕</button></div>`;
@@ -1652,7 +1900,8 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       <label class="f" style="margin-top:12px">Notas<textarea id="f_notes" rows="2">${esc(d.notes)}</textarea></label>
       <div class="sub">Récords</div>
       <div id="recs">${(d.records||[]).map(recRow).join("")}</div>
-      <button type="button" class="btn" id="addRec">+ Añadir récord</button>
+      <div class="btn-row"><button type="button" class="btn" id="addRec">+ Añadir récord</button><button type="button" class="btn" id="sortRec">Ordenar por progreso</button></div>
+      <p class="hint" style="margin:6px 0 0">Arrastra con ⠿ para cambiar el orden en que salen los récords.</p>
       <div class="foot">
         <span class="status" id="formStatus"></span>
         ${isNew ? "" : `<button type="button" class="btn danger" id="delBtn">Eliminar</button>`}
@@ -1663,7 +1912,11 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       bindUploads($("#formStatus")); bindArt("f");
       const bindRecDel = () => document.querySelectorAll("[data-del]").forEach(b => b.onclick = () => b.parentElement.remove());
       $("#addRec").onclick = () => { $("#recs").insertAdjacentHTML("beforeend", recRow()); bindRecDel(); };
-      bindRecDel();
+      bindRecDel(); enableRowDrag($("#recs"));
+      $("#sortRec").onclick = () => {
+        const box = $("#recs"), rows = [...box.children];
+        rows.sort((a,b) => (+b.querySelector('[data-k="progress"]').value||0) - (+a.querySelector('[data-k="progress"]').value||0)).forEach(x => box.appendChild(x));
+      };
       const del = $("#delBtn");
       if (del) del.onclick = () => {
         if (del.dataset.confirm){ if (openDemon===d.id) openDemon=null; save({...state, demons:state.demons.filter(x=>x.id!==d.id)}, {log:true}); close(); }
@@ -1782,13 +2035,14 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   // ---------- eventos ----------
   $("#tabs").addEventListener("click", e => {
     const t = e.target.closest(".tab"); if (!t) return;
-    tab = t.dataset.tab; openDemon = null; openPlayer = null; openUp = null; query = ""; render();
+    tab = t.dataset.tab; openDemon = null; openPlayer = null; openUp = null; openRun = null; query = ""; render();
   });
   $("#loginBtn").onclick = openLogin;
   $("#logoutBtn").onclick = logout;
   $("#addDemon").onclick = () => openDemonForm(null);
   $("#editSite").onclick = openSiteForm;
   $("#openJson").onclick = openJson;
+  $("#addRun").onclick = () => { tab = "runs"; openDemon = openPlayer = openUp = openRun = null; render(); openRunForm(null); };
   $("#addUp").onclick = () => { tab = "up"; openDemon = openPlayer = openUp = null; render(); openUpForm(null); };
   $("#clAll").onclick = openChangelogAll;
   $("#clEdit").onclick = openChangelogEditor;
@@ -1798,6 +2052,47 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     if (b.id === "acctLogin") openAccountLogin();
     if (b.id === "acctMe"){ openPlayer = me.k; openDemon = openUp = null; render(); window.scrollTo({top:0}); }
     if (b.id === "acctOut") playerLogout();
+  });
+
+  // ---------- botón "atrás" del navegador ----------
+  // Cada vista tiene su dirección (#/leaderboard, #/nivel/…), así el navegador puede volver atrás.
+  const TAB_SLUG = {main:"principal", ext:"extendida", leg:"legacy", up:"futuros", runs:"hardest-runs", stats:"leaderboard", roul:"ruleta", send:"subir-record", pend:"pendientes"};
+  const SLUG_TAB = Object.fromEntries(Object.entries(TAB_SLUG).map(([k,v]) => [v,k]));
+  let restoring = false;
+  function viewHash(){
+    const enc = encodeURIComponent;
+    if (openDemon) return "#/nivel/" + enc(openDemon);
+    if (openPlayer) return "#/jugador/" + enc(openPlayer);
+    if (openUp) return "#/futuro/" + enc(openUp);
+    if (openRun) return "#/run/" + enc(openRun);
+    return "#/" + (TAB_SLUG[tab] || "principal");
+  }
+  function syncHash(){
+    const h = viewHash();
+    if (h === location.hash) return;
+    try {
+      if (restoring || !location.hash) history.replaceState(null, "", h);
+      else history.pushState(null, "", h);
+    } catch {}
+  }
+  function readHash(){
+    const parts = location.hash.replace(/^#\/?/, "").split("/");
+    const kind = parts[0] || "", id = decodeURIComponent(parts.slice(1).join("/") || "");
+    openDemon = openPlayer = openUp = openRun = null;
+    if (kind === "nivel" && id) openDemon = id;
+    else if (kind === "jugador" && id) { openPlayer = id.toLowerCase(); tab = "stats"; }
+    else if (kind === "futuro" && id) { openUp = id; tab = "up"; }
+    else if (kind === "run" && id) { openRun = id; tab = "runs"; }
+    else if (SLUG_TAB[kind]) tab = SLUG_TAB[kind];
+    else tab = "main";
+    if (openDemon){ const i = state.demons.findIndex(d => d.id === openDemon); if (i >= 0) tab = section(i+1); }
+    query = "";
+  }
+  window.addEventListener("popstate", () => {
+    if (!loaded) return;
+    document.getElementById("modalRoot").innerHTML = "";
+    restoring = true; readHash(); render(); restoring = false;
+    window.scrollTo({top:0});
   });
 
   async function boot(){
@@ -1812,12 +2107,15 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       state = {...state, ...d};
       state.demons = (state.demons||[]).map(x => ({records:[], ...x}));
       state.upcoming = Array.isArray(state.upcoming) ? state.upcoming : [];
+      state.runs = (Array.isArray(state.runs) ? state.runs : []).map(x => ({records:[], ...x}));
+      state.accounts = Array.isArray(state.accounts) ? state.accounts : [];
       state.changelog = Array.isArray(state.changelog) ? state.changelog : [];
       state.mods = Array.isArray(state.mods) ? state.mods : [];
       state.players = (state.players && typeof state.players === "object" && !Array.isArray(state.players)) ? state.players : {};
       state.profiles = (state.profiles && typeof state.profiles === "object" && !Array.isArray(state.profiles)) ? state.profiles : {};
       if (meReq) await meReq;
-      loaded = true; render();
+      readHash();
+      loaded = true; restoring = true; render(); restoring = false;
       if (editing) loadPending();
     } catch (err) {
       loaded = true; render();
