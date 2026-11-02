@@ -1017,7 +1017,8 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
           <button class="ibtn" data-uact="up" data-id="${d.id}" ${pos===1?"disabled":""} aria-label="Subir">▲</button>
           <button class="ibtn" data-uact="down" data-id="${d.id}" ${pos===all.length?"disabled":""} aria-label="Bajar">▼</button>
           <button class="ibtn" data-uact="edit" data-id="${d.id}">Editar</button>
-          <button class="ibtn" data-uact="promote" data-id="${d.id}" title="Pasar a la lista">→ Lista</button></div>`
+          <button class="ibtn" data-uact="promote" data-id="${d.id}" title="Pasar a la lista">→ Lista</button>
+          <button class="ibtn" data-uact="torun" data-id="${d.id}" title="Pasar a Hardest runs">→ Runs</button></div>`
         : `<div class="pts pct">${pct}%<small>progreso</small></div>`;
       html += `<div class="row" role="button" tabindex="0" data-uopen="${d.id}">
         ${thumbHTML(d,pos)}
@@ -1044,7 +1045,8 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       const arr = (state.upcoming||[]).slice();
       const i = arr.findIndex(d => d.id === b.dataset.id);
       if (b.dataset.uact === "edit") return openUpForm(arr[i]);
-      if (b.dataset.uact === "promote") return promoteToList("u:" + arr[i].id);
+      if (b.dataset.uact === "promote") return transferLevel("u:" + arr[i].id, "d");
+      if (b.dataset.uact === "torun") return transferLevel("u:" + arr[i].id, "r");
       const j = b.dataset.uact === "up" ? i-1 : i+1;
       if (j<0 || j>=arr.length) return;
       [arr[i],arr[j]] = [arr[j],arr[i]];
@@ -1071,7 +1073,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         </div>
         <div class="btn-row" style="margin-top:14px">
           ${video ? `<a class="btn" href="${esc(video)}" target="_blank" rel="noopener">Ver progreso ↗</a>` : ""}
-          ${editing ? `<button class="btn primary" id="editUp">Editar nivel</button><button class="btn" id="promoteUp">Pasar a la lista</button>` : ""}
+          ${editing ? `<button class="btn primary" id="editUp">Editar nivel</button><button class="btn" id="promoteUp">Pasar a la lista</button><button class="btn" id="upToRun">Pasar a Hardest runs</button>` : ""}
         </div>
       </div>
     </div>
@@ -1080,15 +1082,18 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   function bindUpDetail(){
     $("#uback")?.addEventListener("click", () => { openUp = null; tab = "up"; render(); });
     $("#editUp")?.addEventListener("click", () => openUpForm((state.upcoming||[]).find(x => x.id === openUp)));
-    $("#promoteUp")?.addEventListener("click", () => promoteToList("u:" + openUp));
+    $("#promoteUp")?.addEventListener("click", () => transferLevel("u:" + openUp, "d"));
+    $("#upToRun")?.addEventListener("click", () => transferLevel("u:" + openUp, "r"));
   }
-  function openUpForm(d){
+  function openUpForm(d, opts={}){
     const isNew = !d, list = state.upcoming||[];
-    d = d || {id:uid(), name:"", publisher:"", creator:"", levelId:"", player:"", progress:0, video:"", thumb:"", notes:""};
+    d = d || {id:uid(), name:"", publisher:"", creator:"", levelId:"", player:"", progress:0, video:"", thumb:"", notes:"", ...(opts.prefill||{})};
     const curPos = isNew ? list.length+1 : list.findIndex(x=>x.id===d.id)+1;
     const max = isNew ? list.length+1 : list.length;
     modal(`<h3>${isNew?"Agregar futuro nivel":"Editar futuro nivel"}</h3>
       <form id="uf">
+      ${moveNotice(opts)}
+      ${isNew && !opts.prefill ? fillSelect("u", "u") : ""}
       <div class="grid2">
         <label class="f">Nombre del nivel<input id="u_name" required value="${esc(d.name)}"></label>
         <label class="f">Orden (1–${max})<input id="u_pos" type="number" min="1" max="${max}" value="${curPos}"></label>
@@ -1103,6 +1108,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         ${imgField("u_thumb", d.thumb, "URL de una imagen")}</label>
       ${artFields("u", d)}
       <label class="f" style="margin-top:12px">Notas<textarea id="u_notes" rows="2">${esc(d.notes)}</textarea></label>
+      ${moveCheckbox(opts)}
       <div class="foot">
         <span class="status" id="uStatus"></span>
         ${isNew ? "" : `<button type="button" class="btn danger" id="uDel">Eliminar</button>`}
@@ -1110,7 +1116,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         <button type="submit" class="btn primary">${isNew?"Agregar":"Guardar"}</button>
       </div></form>`, close => {
       $("#cancel").onclick = close;
-      bindUploads($("#uStatus")); bindArt("u");
+      bindUploads($("#uStatus")); bindArt("u"); bindFillSelect("u", "u", $("#uStatus"));
       const del = $("#uDel");
       if (del) del.onclick = () => {
         if (del.dataset.confirm){ if (openUp===d.id) openUp=null; save({...state, upcoming:list.filter(x=>x.id!==d.id)}); close(); }
@@ -1125,7 +1131,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         const arr = list.filter(x=>x.id!==d.id);
         const p = Math.max(1, Math.min(arr.length+1, Number($("#u_pos").value)||arr.length+1));
         arr.splice(p-1, 0, nd);
-        save({...state, upcoming:arr}); close();
+        save(applyMove({...state, upcoming:arr}, opts, nd.id, "u")); close();
       });
     });
   }
@@ -1153,7 +1159,9 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
           ${q ? "" : `<span class="drag" data-drag="${d.id}" title="Arrastra para mover" aria-label="Arrastrar para mover">⠿</span>`}
           <button class="ibtn" data-ract="up" data-id="${d.id}" ${pos===1?"disabled":""} aria-label="Subir">▲</button>
           <button class="ibtn" data-ract="down" data-id="${d.id}" ${pos===all.length?"disabled":""} aria-label="Bajar">▼</button>
-          <button class="ibtn" data-ract="edit" data-id="${d.id}">Editar</button></div>`
+          <button class="ibtn" data-ract="edit" data-id="${d.id}">Editar</button>
+          <button class="ibtn" data-ract="todemon" data-id="${d.id}" title="Copiar a la lista">→ Lista</button>
+          <button class="ibtn" data-ract="toup" data-id="${d.id}" title="Pasar a Futuros niveles">→ Futuros</button></div>`
         : `<div class="pts pct">${b ? `${clampPct(b.from)}–${clampPct(b.to)}%` : "—"}<small>mejor run</small></div>`;
       html += `<div class="row" role="button" tabindex="0" data-ropen="${d.id}">
         ${thumbHTML(d,pos)}
@@ -1179,6 +1187,8 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       e.stopPropagation();
       const arr = (state.runs||[]).slice(), i = arr.findIndex(d => d.id === b.dataset.id);
       if (b.dataset.ract === "edit") return openRunForm(arr[i]);
+      if (b.dataset.ract === "todemon") return transferLevel("r:" + arr[i].id, "d");
+      if (b.dataset.ract === "toup") return transferLevel("r:" + arr[i].id, "u");
       const j = b.dataset.ract === "up" ? i-1 : i+1;
       if (j<0 || j>=arr.length) return;
       [arr[i],arr[j]] = [arr[j],arr[i]];
@@ -1206,7 +1216,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         </div>
         <div class="btn-row" style="margin-top:14px">
           ${video ? `<a class="btn" href="${esc(video)}" target="_blank" rel="noopener">Ver video del nivel ↗</a>` : ""}
-          ${editing ? `<button class="btn primary" id="editRun">Editar nivel</button><button class="btn" id="promoteRun">Copiar a la lista</button>` : ""}
+          ${editing ? `<button class="btn primary" id="editRun">Editar nivel</button><button class="btn" id="promoteRun">Copiar a la lista</button><button class="btn" id="runToUp">Pasar a Futuros niveles</button>` : ""}
         </div>
       </div>
     </div>
@@ -1223,7 +1233,8 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   function bindRunDetail(){
     $("#rback")?.addEventListener("click", () => { openRun = null; tab = "runs"; render(); });
     $("#editRun")?.addEventListener("click", () => openRunForm((state.runs||[]).find(x => x.id === openRun)));
-    $("#promoteRun")?.addEventListener("click", () => promoteToList("r:" + openRun));
+    $("#promoteRun")?.addEventListener("click", () => transferLevel("r:" + openRun, "d"));
+    $("#runToUp")?.addEventListener("click", () => transferLevel("r:" + openRun, "u"));
   }
   function runRow(rr={player:"", from:20, to:100, video:""}){
     return `<div class="rec-edit run-edit">${rowHandle}<input placeholder="Jugador" value="${esc(rr.player)}" data-k="player" aria-label="Jugador">
@@ -1231,14 +1242,16 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       <input class="v" placeholder="Video (link de YouTube)" value="${esc(rr.video)}" data-k="video" aria-label="Video">
       <button type="button" class="ibtn" data-del aria-label="Quitar run">✕</button></div>`;
   }
-  function openRunForm(d){
+  function openRunForm(d, opts={}){
     const isNew = !d, list = state.runs||[];
-    d = d || {id:uid(), name:"", publisher:"", creator:"", levelId:"", video:"", thumb:"", notes:"", records:[]};
+    d = d || {id:uid(), name:"", publisher:"", creator:"", levelId:"", video:"", thumb:"", notes:"", records:[], ...(opts.prefill||{})};
     const bestIdx = (d.records||[]).findIndex(rr => (rr.player||"").trim()), best = bestIdx >= 0 ? d.records[bestIdx] : {};
     const curPos = isNew ? list.length+1 : list.findIndex(x=>x.id===d.id)+1;
     const max = isNew ? list.length+1 : list.length;
     modal(`<h3>${isNew?"Agregar hardest run":"Editar hardest run"}</h3>
       <form id="rf">
+      ${moveNotice(opts)}
+      ${isNew && !opts.prefill ? fillSelect("r", "r") : ""}
       <div class="grid2">
         <label class="f">Nombre del nivel<input id="r_name" required value="${esc(d.name)}"></label>
         <label class="f">Posición (1–${max})<input id="r_pos" type="number" min="1" max="${max}" value="${curPos}"></label>
@@ -1262,6 +1275,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       <div id="runs">${(d.records||[]).filter((rr, i) => i !== bestIdx).map(runRow).join("")}</div>
       <div class="btn-row"><button type="button" class="btn" id="addRunRec">+ Añadir run</button><button type="button" class="btn" id="sortRun">Ordenar de mayor a menor</button></div>
       <p class="hint" style="margin:6px 0 0">Arrastra con ⠿ para cambiar el orden en que salen los runs.</p>
+      ${moveCheckbox(opts)}
       <div class="foot">
         <span class="status" id="rStatus"></span>
         ${isNew ? "" : `<button type="button" class="btn danger" id="rDel">Eliminar</button>`}
@@ -1269,7 +1283,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         <button type="submit" class="btn primary">${isNew?"Agregar":"Guardar"}</button>
       </div></form>`, close => {
       $("#cancel").onclick = close;
-      bindUploads($("#rStatus")); bindArt("r");
+      bindUploads($("#rStatus")); bindArt("r"); bindFillSelect("r", "r", $("#rStatus"));
       const bindDel = () => document.querySelectorAll("#runs [data-del]").forEach(b => b.onclick = () => b.closest(".rec-edit").remove());
       $("#addRunRec").onclick = () => { $("#runs").insertAdjacentHTML("beforeend", runRow()); bindDel(); };
       bindDel(); enableRowDrag($("#runs"));
@@ -1301,7 +1315,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         const arr = list.filter(x=>x.id!==d.id);
         const p = Math.max(1, Math.min(arr.length+1, Number($("#r_pos").value)||arr.length+1));
         arr.splice(p-1, 0, nd);
-        save({...state, runs:arr}); close();
+        save(applyMove({...state, runs:arr}, opts, nd.id, "r")); close();
       });
     });
   }
@@ -1938,39 +1952,99 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       <button type="button" class="ibtn" data-del aria-label="Quitar récord">✕</button></div>`;
   }
 
-  // Datos de un futuro nivel o de un hardest run, listos para el formulario de demon
+  // ---------- pasar niveles entre la lista, futuros niveles y hardest runs ----------
   const LEVEL_FIELDS = ["name","publisher","creator","levelId","video","thumb","notes","art","artOpacity","artInProfile","profileImg"];
-  function levelSource(key){
+  const KIND_NAME = {d:"la lista", u:"Futuros niveles", r:"Hardest runs"};
+  function findSource(key){
     const [kind, id] = String(key||"").split(":");
-    const src = kind === "u" ? (state.upcoming||[]).find(x => x.id === id) : kind === "r" ? (state.runs||[]).find(x => x.id === id) : null;
-    if (!src) return null;
-    const out = {};
-    LEVEL_FIELDS.forEach(f => { if (src[f] !== undefined && src[f] !== "") out[f] = src[f]; });
-    if (kind === "u" && src.player) out.verifier = src.player;
+    const arr = kind === "u" ? state.upcoming : kind === "r" ? state.runs : kind === "d" ? state.demons : null;
+    const src = (arr||[]).find(x => x.id === id);
+    return src ? {kind, id, src} : null;
+  }
+  // target: "d" (demon), "u" (futuro nivel) o "r" (hardest run)
+  function levelSource(key, target){
+    const f = findSource(key); if (!f) return null;
+    const {kind, src} = f, out = {};
+    LEVEL_FIELDS.forEach(k => { if (src[k] !== undefined && src[k] !== "") out[k] = src[k]; });
+    const best = kind === "r" ? bestRun(src) : null;
+    if (target === "d"){
+      if (kind === "u" && src.player) out.verifier = src.player;
+      if (kind === "r" && best && clampPct(best.from) === 0 && clampPct(best.to) >= 100) out.verifier = best.player;
+    }
+    if (target === "u"){
+      if (kind === "r" && best && clampPct(best.from) === 0){ out.player = best.player; out.progress = clampPct(best.to); }
+    }
+    if (target === "r"){
+      if (kind === "u" && src.player) out.records = [{player: src.player, from: 0, to: clampPct(src.progress), video: src.video || ""}];
+    }
     return out;
   }
-  function sourceOptions(){
-    const ups = state.upcoming||[], runs = state.runs||[];
-    return (ups.length ? `<optgroup label="Futuros niveles">${ups.map(u => `<option value="u:${esc(u.id)}">${esc(u.name)}${u.player ? " · " + esc(u.player) : ""}</option>`).join("")}</optgroup>` : "")
-         + (runs.length ? `<optgroup label="Hardest runs">${runs.map(x => `<option value="r:${esc(x.id)}">${esc(x.name)}</option>`).join("")}</optgroup>` : "");
+  function sourceOptions(target){
+    const g = (label, arr, kind, fmt) => arr.length ? `<optgroup label="${label}">${arr.map((x,i) => `<option value="${kind}:${esc(x.id)}">${fmt(x,i)}</option>`).join("")}</optgroup>` : "";
+    return (target !== "u" ? g("Futuros niveles", state.upcoming||[], "u", u => esc(u.name) + (u.player ? " · " + esc(u.player) : "")) : "")
+         + (target !== "r" ? g("Hardest runs", state.runs||[], "r", x => esc(x.name)) : "")
+         + (target !== "d" ? g("Lista", state.demons||[], "d", (x,i) => "#" + (i+1) + " · " + esc(x.name)) : "");
   }
-  // Pasar un futuro nivel (o un nivel de hardest runs) a la lista
-  function promoteToList(key){
-    const pre = levelSource(key); if (!pre) return;
-    openDemonForm(null, {prefill: pre, fromUp: key.startsWith("u:") ? key.slice(2) : null});
+  // Abre el formulario de destino ya lleno. Desde la lista siempre se copia.
+  function transferLevel(key, target){
+    const pre = levelSource(key, target); if (!pre) return;
+    const kind = key.split(":")[0];
+    const opts = {prefill: pre, moveFrom: kind === "d" ? null : key, removeDefault: kind === "u" || target === "u"};
+    if (target === "d") openDemonForm(null, opts);
+    else if (target === "u") openUpForm(null, opts);
+    else openRunForm(null, opts);
+  }
+  function moveNotice(opts){
+    if (!opts.moveFrom) return "";
+    return `<p class="hint" style="margin-top:0">Datos tomados de ${KIND_NAME[opts.moveFrom.split(":")[0]]}. Revísalos y elige la posición.</p>`;
+  }
+  function moveCheckbox(opts){
+    if (!opts.moveFrom) return "";
+    return `<label class="hint" style="display:flex;gap:6px;align-items:center;margin-top:12px;font-weight:600"><input type="checkbox" id="mv_rm" ${opts.removeDefault ? "checked" : ""}> Quitarlo de ${KIND_NAME[opts.moveFrom.split(":")[0]]} al agregarlo</label>`;
+  }
+  function fillSelect(target, px){
+    const o = sourceOptions(target);
+    return o ? `<label class="f" style="margin-bottom:12px">Rellenar con los datos de… <span class="hint">opcional</span>
+      <select id="${px}_src"><option value="">Escribir todo a mano</option>${o}</select></label>` : "";
+  }
+  function bindFillSelect(target, px, statusEl){
+    $("#"+px+"_src")?.addEventListener("change", e => {
+      const pre = levelSource(e.target.value, target); if (!pre) return;
+      const set = (id, v) => { const el = $("#"+id); if (el && v !== undefined) el.value = v; };
+      set(px+"_name", pre.name); set(px+"_pub", pre.publisher); set(px+"_cre", pre.creator); set(px+"_lid", pre.levelId);
+      set(px+"_vid", pre.video); set(px+"_thumb", pre.thumb); set(px+"_notes", pre.notes); set(px+"_art", pre.art); set(px+"_pimg", pre.profileImg);
+      if (pre.artOpacity !== undefined){ set(px+"_artop", pre.artOpacity); $("#"+px+"_artopv").textContent = pre.artOpacity + "%"; }
+      if (pre.artInProfile !== undefined) $("#"+px+"_artprof").checked = pre.artInProfile !== false;
+      if (target === "d" && pre.verifier && !$("#f_ver").value.trim()) set("f_ver", pre.verifier);
+      if (target === "u" && pre.player){ set("u_pl", pre.player); set("u_pr", pre.progress); }
+      if (target === "r" && pre.records && pre.records[0] && !$("#r_bp").value.trim()){
+        const b = pre.records[0]; set("r_bp", b.player); set("r_bf", b.from); set("r_bt", b.to); set("r_bv", b.video);
+      }
+      if (statusEl) statusEl.textContent = "Datos copiados. Revísalos antes de guardar.";
+    });
+  }
+  function applyMove(next, opts, newId, targetKind){
+    if (!opts.moveFrom || !$("#mv_rm")?.checked) return next;
+    const [kind, id] = opts.moveFrom.split(":");
+    if (kind === "u") next.upcoming = (next.upcoming||[]).filter(x => x.id !== id);
+    if (kind === "r") next.runs = (next.runs||[]).filter(x => x.id !== id);
+    if ((kind === "u" && openUp === id) || (kind === "r" && openRun === id)){
+      openUp = openRun = openDemon = null;
+      if (targetKind === "d") openDemon = newId; else if (targetKind === "u") openUp = newId; else openRun = newId;
+    }
+    return next;
   }
 
   function openDemonForm(d, opts={}){
     const isNew = !d;
     d = d || {id:uid(), name:"", creator:"", publisher:"", verifier:"", levelId:"", req:null, video:"", thumb:"", notes:"", records:[], ...(opts.prefill||{})};
-    const srcOpts = isNew ? sourceOptions() : "";
+    const showFill = isNew && !opts.prefill;
     const curPos = isNew ? state.demons.length+1 : state.demons.findIndex(x=>x.id===d.id)+1;
     const max = isNew ? state.demons.length+1 : state.demons.length;
     modal(`<h3>${isNew?"Agregar demon":"Editar demon"}</h3>
       <form id="df">
-      ${opts.fromUp ? `<p class="hint" style="margin-top:0">Datos tomados de Futuros niveles. Revisa el video de verificación y elige la posición.</p>` : ""}
-      ${isNew && srcOpts && !opts.prefill ? `<label class="f" style="margin-bottom:12px">Rellenar con los datos de… <span class="hint">opcional</span>
-        <select id="f_src"><option value="">Escribir todo a mano</option>${srcOpts}</select></label>` : ""}
+      ${moveNotice(opts)}
+      ${showFill ? fillSelect("d", "f") : ""}
       <div class="grid2">
         <label class="f">Nombre del nivel<input id="f_name" required value="${esc(d.name)}"></label>
         <label class="f">Posición (1–${max})<input id="f_pos" type="number" min="1" max="${max}" value="${curPos}">
@@ -1990,7 +2064,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       <div id="recs">${(d.records||[]).map(recRow).join("")}</div>
       <div class="btn-row"><button type="button" class="btn" id="addRec">+ Añadir récord</button><button type="button" class="btn" id="sortRec">Ordenar por progreso</button></div>
       <p class="hint" style="margin:6px 0 0">Arrastra con ⠿ para cambiar el orden en que salen los récords.</p>
-      ${opts.fromUp ? `<label class="hint" style="display:flex;gap:6px;align-items:center;margin-top:12px;font-weight:600"><input type="checkbox" id="f_rmUp" checked> Quitarlo de Futuros niveles al agregarlo</label>` : ""}
+      ${moveCheckbox(opts)}
       <div class="foot">
         <span class="status" id="formStatus"></span>
         ${isNew ? "" : `<button type="button" class="btn danger" id="delBtn">Eliminar</button>`}
@@ -2004,16 +2078,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         const end = b.dataset.sec === "main" ? Math.min(state.mainSize, others+1) : b.dataset.sec === "ext" ? Math.min(state.extSize, others+1) : others+1;
         $("#f_pos").value = Math.max(1, end);
       });
-      $("#f_src")?.addEventListener("change", e => {
-        const pre = levelSource(e.target.value); if (!pre) return;
-        const set = (id, v) => { const el = $("#"+id); if (el && v !== undefined) el.value = v; };
-        set("f_name", pre.name); set("f_pub", pre.publisher); set("f_cre", pre.creator); set("f_lid", pre.levelId);
-        set("f_vid", pre.video); set("f_thumb", pre.thumb); set("f_notes", pre.notes); set("f_art", pre.art); set("f_pimg", pre.profileImg);
-        if (pre.verifier && !$("#f_ver").value.trim()) set("f_ver", pre.verifier);
-        if (pre.artOpacity !== undefined){ set("f_artop", pre.artOpacity); $("#f_artopv").textContent = pre.artOpacity + "%"; }
-        if (pre.artInProfile !== undefined) $("#f_artprof").checked = pre.artInProfile !== false;
-        $("#formStatus").textContent = "Datos copiados. Revísalos antes de guardar.";
-      });
+      bindFillSelect("d", "f", $("#formStatus"));
       const bindRecDel = () => document.querySelectorAll("[data-del]").forEach(b => b.onclick = () => b.parentElement.remove());
       $("#addRec").onclick = () => { $("#recs").insertAdjacentHTML("beforeend", recRow()); bindRecDel(); };
       bindRecDel(); enableRowDrag($("#recs"));
@@ -2040,11 +2105,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         const arr = state.demons.filter(x=>x.id!==d.id);
         const p = Math.max(1, Math.min(arr.length+1, Number($("#f_pos").value)||arr.length+1));
         arr.splice(p-1, 0, nd);
-        const next = {...state, demons:arr};
-        if (opts.fromUp && $("#f_rmUp")?.checked){
-          next.upcoming = (state.upcoming||[]).filter(u => u.id !== opts.fromUp);
-          if (openUp === opts.fromUp){ openUp = null; openDemon = nd.id; }
-        }
+        const next = applyMove({...state, demons:arr}, opts, nd.id, "d");
         save(next, {log:true}); close();
       });
     });
