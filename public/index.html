@@ -137,9 +137,11 @@ td.num{font-variant-numeric:tabular-nums;font-family:var(--display);font-weight:
 .bar i{display:block;height:100%;background:var(--accent)}
 .bar i.full{background:var(--ok)}
 .bar.seg i{background:var(--warn)}
-.run-edit{grid-template-columns:auto minmax(0,1.2fr) 150px minmax(0,1.4fr) auto}
-.run-edit span input{width:100%;min-width:0}
-@media (max-width:520px){.run-edit{grid-template-columns:auto 1fr 130px auto}}
+.rec-edit.run-edit{grid-template-columns:auto minmax(0,1.2fr) 180px minmax(0,1.4fr) auto}
+.run-edit > span{width:100%;min-width:0}
+.run-edit span input,.pct2 input{flex:1 1 0;width:auto;min-width:48px;padding:6px 4px;text-align:center}
+.pct2{display:flex;gap:6px;align-items:center;color:var(--fg)}
+@media (max-width:520px){.rec-edit.run-edit{grid-template-columns:auto 1fr 150px auto}}
 /* modal */
 .overlay{position:fixed;inset:0;background:rgba(10,12,18,.55);z-index:20;display:grid;place-items:center;padding:16px}
 .modal{background:var(--surface);border:1px solid var(--line);border-radius:12px;width:min(640px,100%);max-height:calc(100% - 32px);overflow:auto;padding:20px}
@@ -1130,7 +1132,8 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   // ---------- hardest runs ----------
   const runSpan = rr => clampPct(rr.to) - clampPct(rr.from);
   const runBetter = (a, b) => runSpan(a) > runSpan(b) || (runSpan(a) === runSpan(b) && clampPct(a.to) > clampPct(b.to));
-  function bestRun(d){ return (d.records||[]).reduce((a, rr) => !a || runBetter(rr, a) ? rr : a, null); }
+  // El mejor run es el que los moderadores ponen como "Mejor run" (el primero de la lista)
+  function bestRun(d){ return (d.records||[]).find(rr => (rr.player||"").trim()) || null; }
   const runBar = rr => { const f = clampPct(rr.from), t = clampPct(rr.to); return `<span class="bar seg"><i class="${t>=100&&f===0?"full":""}" style="margin-left:${f}%;width:${Math.max(0,t-f)}%"></i></span>`; };
   function runsListHTML(){
     const all = (state.runs||[]).map((d,i) => ({d, pos:i+1}));
@@ -1227,6 +1230,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   function openRunForm(d){
     const isNew = !d, list = state.runs||[];
     d = d || {id:uid(), name:"", publisher:"", creator:"", levelId:"", video:"", thumb:"", notes:"", records:[]};
+    const bestIdx = (d.records||[]).findIndex(rr => (rr.player||"").trim()), best = bestIdx >= 0 ? d.records[bestIdx] : {};
     const curPos = isNew ? list.length+1 : list.findIndex(x=>x.id===d.id)+1;
     const max = isNew ? list.length+1 : list.length;
     modal(`<h3>${isNew?"Agregar hardest run":"Editar hardest run"}</h3>
@@ -1239,13 +1243,20 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         <label class="f">ID del nivel<input id="r_lid" value="${esc(d.levelId)}"></label>
         <label class="f">Video del nivel <span class="hint">para la miniatura</span><input id="r_vid" placeholder="Link de YouTube" value="${esc(d.video)}"></label>
       </div>
+      <div class="sub">Mejor run</div>
+      <div class="grid2">
+        <label class="f">Jugador<input id="r_bp" value="${esc(best.player||"")}" placeholder="Quién hizo el run"></label>
+        <label class="f">Run (desde % – hasta %)
+          <span class="pct2"><input id="r_bf" type="number" min="0" max="99" value="${best.player ? clampPct(best.from) : ""}" placeholder="20" aria-label="Desde %"> – <input id="r_bt" type="number" min="1" max="100" value="${best.player ? clampPct(best.to) : ""}" placeholder="100" aria-label="Hasta %"></span></label>
+        <label class="f" style="grid-column:1/-1">Video del run<input id="r_bv" value="${esc(best.video||"")}" placeholder="Link de YouTube"></label>
+      </div>
       <label class="f" style="margin-top:12px">Miniatura personalizada <span class="hint">Opcional. Si la dejas vacía se usa la del video de YouTube.</span>
         ${imgField("r_thumb", d.thumb, "URL de una imagen")}</label>
       ${artFields("r", d)}
       <label class="f" style="margin-top:12px">Notas<textarea id="r_notes" rows="2">${esc(d.notes)}</textarea></label>
-      <div class="sub">Runs</div>
-      <div id="runs">${(d.records||[]).map(runRow).join("")}</div>
-      <div class="btn-row"><button type="button" class="btn" id="addRunRec">+ Añadir run</button><button type="button" class="btn" id="sortRun">Ordenar por mejor run</button></div>
+      <div class="sub">Otros runs <span class="hint">opcional</span></div>
+      <div id="runs">${(d.records||[]).filter((rr, i) => i !== bestIdx).map(runRow).join("")}</div>
+      <div class="btn-row"><button type="button" class="btn" id="addRunRec">+ Añadir run</button><button type="button" class="btn" id="sortRun">Ordenar de mayor a menor</button></div>
       <p class="hint" style="margin:6px 0 0">Arrastra con ⠿ para cambiar el orden en que salen los runs.</p>
       <div class="foot">
         <span class="status" id="rStatus"></span>
@@ -1270,12 +1281,14 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       };
       $("#rf").addEventListener("submit", e => {
         e.preventDefault();
-        const recs = [...document.querySelectorAll("#runs .rec-edit")].map(row => ({
+        const bp = $("#r_bp").value.trim();
+        const top = bp ? [{player: bp, from: clampPct($("#r_bf").value), to: clampPct($("#r_bt").value || 100), video: $("#r_bv").value.trim()}] : [];
+        const recs = top.concat([...document.querySelectorAll("#runs .rec-edit")].map(row => ({
           player: row.querySelector('[data-k="player"]').value.trim(),
           from: clampPct(row.querySelector('[data-k="from"]').value),
           to: clampPct(row.querySelector('[data-k="to"]').value),
           video: row.querySelector('[data-k="video"]').value.trim()
-        })).filter(x => x.player);
+        })).filter(x => x.player));
         const bad = recs.find(x => x.from >= x.to);
         if (bad){ $("#rStatus").textContent = `El run de ${bad.player} debe empezar antes de donde termina.`; return; }
         const nd = {...d, name:$("#r_name").value.trim(), publisher:$("#r_pub").value.trim(), creator:$("#r_cre").value.trim(),
@@ -1754,7 +1767,9 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
           next = {...state, runs: state.runs.map(d => {
             if (d.id !== id) return d;
             const recs = (d.records||[]).slice(), i = recs.findIndex(rr => pkey(rr.player) === pkey(x.player));
-            if (i < 0) recs.push(rec); else if (runBetter(rec, recs[i]) || runSpan(rec) === runSpan(recs[i])) recs[i] = rec;
+            if (i >= 0){ if (runBetter(rec, recs[i]) || runSpan(rec) === runSpan(recs[i])) recs.splice(i, 1); else return d; }
+            const cur = recs.find(rr => (rr.player||"").trim());
+            if (!cur || runBetter(rec, cur)) recs.unshift(rec); else recs.push(rec); // si supera al mejor, pasa a ser el mejor run
             return {...d, records:recs};
           })};
         }
