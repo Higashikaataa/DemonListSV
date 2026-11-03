@@ -70,6 +70,7 @@ async function blockedList(env) { return (await env.LIST.get("blocked", "json"))
 
 // Solo se aceptan imágenes subidas al sitio o links https
 const okImg = v => { v = String(v || "").trim(); return (/^\/api\/img\/[a-f0-9]{32}$/.test(v) || /^https:\/\/[^\s"'<>()]{4,400}$/.test(v)) ? v : ""; };
+const DEPTS = ["ahuachapan","santa-ana","sonsonate","chalatenango","la-libertad","san-salvador","cuscatlan","la-paz","cabanas","san-vicente","usulutan","san-miguel","morazan","la-union"];
 function cleanProfile(p) {
   p = p || {};
   return {
@@ -77,7 +78,8 @@ function cleanProfile(p) {
     banner: okImg(p.banner),
     youtube: String(p.youtube || "").trim().slice(0, 200).replace(/[\s"'<>]/g, ""),
     nameColor: /^#[0-9a-f]{6}$/i.test(p.nameColor || "") ? p.nameColor : "",
-    bio: String(p.bio || "").replace(/\r/g, "").slice(0, 400).trim()
+    bio: String(p.bio || "").replace(/\r/g, "").slice(0, 400).trim(),
+    dept: DEPTS.includes(p.dept) ? p.dept : ""
   };
 }
 
