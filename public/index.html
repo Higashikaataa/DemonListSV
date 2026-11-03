@@ -58,6 +58,34 @@ main.wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;paddin
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .thumb .ph{font-family:var(--display);font-weight:700;font-size:1.9rem;color:var(--accent);opacity:.85}
 .row-main{min-width:0}
+.row{position:relative;overflow:hidden;isolation:isolate}
+.row.has-art::before{content:"";position:absolute;top:0;bottom:0;left:0;width:55%;z-index:-1;pointer-events:none;opacity:.6;background:var(--rowart) center/cover no-repeat;-webkit-mask-image:linear-gradient(90deg,#000 35%,transparent);mask-image:linear-gradient(90deg,#000 35%,transparent)}
+.row.has-art .row-main{text-shadow:0 1px 4px rgba(0,0,0,.85)}
+.row.has-art .row-main .meta{color:#e6e6e6}
+.row.has-art .row-main .name{color:#fff}
+.thumbcol{display:flex;flex-direction:column;gap:6px;min-width:0}
+.tags{display:flex;flex-wrap:wrap;gap:4px}
+.tag{font-size:.7rem;line-height:1.3;padding:2px 7px;border-radius:6px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);font-weight:700;cursor:pointer;white-space:nowrap}
+.tag:hover,.tag.on{border-color:var(--accent);color:var(--accent)}
+.tag.on{background:var(--accent-soft)}
+.tagbtn{padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);cursor:pointer;font-weight:700;white-space:nowrap}
+.tagbtn[aria-expanded="true"],.tagbtn.has{border-color:var(--accent);color:var(--accent)}
+.tagbar{display:flex;flex-wrap:wrap;gap:6px;margin:-4px 0 14px;padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);align-items:center}
+.tagpick{display:flex;flex-wrap:wrap;gap:6px}
+.tagopt span{display:inline-block;font-size:.8rem;padding:4px 9px;border-radius:7px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);font-weight:700;cursor:pointer;user-select:none}
+.tagopt input:checked + span{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tagopt input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+.enjoy{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:center}
+@media (max-width:520px){.enjoy{grid-template-columns:minmax(0,1fr)}}
+.enjoy-num{font-family:var(--display);font-size:2.6rem;font-weight:700;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+.enjoy-num small{font-size:1rem;color:var(--muted)}
+.ops{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.op{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 12px;align-items:start;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2)}
+.op .optext{grid-column:2/-1;white-space:pre-line;overflow-wrap:anywhere;font-size:.92rem}
+.op .opscore{font-family:var(--display);font-weight:700;font-variant-numeric:tabular-nums;color:var(--accent)}
+.opform{display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:10px;margin-top:14px;align-items:end}
+@media (max-width:520px){.opform{grid-template-columns:minmax(0,1fr)}}
+.opform textarea{grid-column:1/-1}
 .row-title{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .pos{font-family:var(--display);font-weight:700;font-size:1.25rem;font-variant-numeric:tabular-nums;color:var(--muted)}
 .pos.p1{color:var(--gold)}.pos.p2{color:var(--silver)}.pos.p3{color:var(--bronze)}
@@ -328,6 +356,8 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   let state = { title:"Demonlist", tagline:"", about:"", discordUrl:"", submitUrl:"", mainSize:75, extSize:150, demons:[], upcoming:[], changelog:[], players:{}, mods:[] };
   let loaded = false, editing = false, password = "";
   let tab = "main", openDemon = null, openUp = null, openRun = null, query = "";
+  let tagFilter = new Set(), tagPanel = false, lbSort = "pts";
+  const opCache = new Map(); // opiniones por nivel
   let me = null, session = "", pending = null, pendingErr = "", mySubs = null;
   try { session = localStorage.getItem("dl_session") || ""; } catch {}
   const cssUrl = v => esc(String(v||"").replace(/['"()\\\s<>]/g, c => "%" + c.charCodeAt(0).toString(16).padStart(2,"0")));
@@ -629,7 +659,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     if (!loaded) return;
     syncHash();
     const v = $("#view");
-    if (openDemon){ v.innerHTML = detailHTML(); bindDetail(); bindPlayerLinks(); return; }
+    if (openDemon){ v.innerHTML = detailHTML(); bindDetail(); bindPlayerLinks(); bindOpinions(); return; }
     if (openPlayer){ v.innerHTML = profileHTML(); bindProfile(); return; }
     if (openUp){ v.innerHTML = upDetailHTML(); bindUpDetail(); return; }
     if (openRun){ v.innerHTML = runDetailHTML(); bindRunDetail(); bindPlayerLinks(); return; }
@@ -647,24 +677,24 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     const names = {main:"Lista principal", ext:"Lista extendida", leg:"Legacy"};
     const all = state.demons.map((d,i) => ({d, pos:i+1})).filter(x => section(x.pos) === tab);
     const q = query.trim().toLowerCase();
-    const items = q ? all.filter(x => [x.d.name,x.d.creator,x.d.verifier,x.d.publisher].join(" ").toLowerCase().includes(q)) : all;
+    const items = (q ? all.filter(x => [x.d.name,x.d.creator,x.d.verifier,x.d.publisher].join(" ").toLowerCase().includes(q)) : all).filter(x => matchTags(x.d));
     let html = `<div class="section-head"><h2>${names[tab]}</h2><span class="count">${all.length} demons</span>
-      <input class="search" id="search" type="search" placeholder="Buscar nivel o creador" value="${esc(query)}" aria-label="Buscar"></div>`;
+      <input class="search" id="search" type="search" placeholder="Buscar nivel o creador" value="${esc(query)}" aria-label="Buscar">${tagButton()}</div>${tagBar(all.map(x => x.d))}`;
     if (!state.demons.length)
       return html + `<div class="empty"><strong>La lista está vacía</strong>Entra al modo editor y pulsa “Agregar demon” para empezar.</div>`;
     if (!items.length)
-      return html + `<div class="empty"><strong>${q ? "Sin resultados" : "Nada en esta sección todavía"}</strong>${q ? "Prueba con otro nombre." : "Los demons aparecen aquí cuando la lista llega a esas posiciones."}</div>`;
+      return html + `<div class="empty"><strong>${q || tagFilter.size ? "Sin resultados" : "Nada en esta sección todavía"}</strong>${q || tagFilter.size ? "Prueba con otro nombre o quita algún tag del filtro." : "Los demons aparecen aquí cuando la lista llega a esas posiciones."}</div>`;
     html += `<div class="list">`;
     for (const {d,pos} of items){
       const pc = pos<=3 ? " p"+pos : "";
       const tools = editing ? `<div class="edit-tools" data-stop>
-          ${q ? "" : `<span class="drag" data-drag="${d.id}" title="Arrastra para mover" aria-label="Arrastrar para mover">⠿</span>`}
+          ${q || tagFilter.size ? "" : `<span class="drag" data-drag="${d.id}" title="Arrastra para mover" aria-label="Arrastrar para mover">⠿</span>`}
           <button class="ibtn" data-act="up" data-id="${d.id}" ${pos===1?"disabled":""} aria-label="Subir">▲</button>
           <button class="ibtn" data-act="down" data-id="${d.id}" ${pos===state.demons.length?"disabled":""} aria-label="Bajar">▼</button>
           <button class="ibtn" data-act="edit" data-id="${d.id}">Editar</button></div>` :
         `<div class="pts">${basePoints(pos) ? fmt(basePoints(pos)) : "—"}<small>puntos</small></div>`;
-      html += `<div class="row" role="button" tabindex="0" data-open="${d.id}">
-        ${thumbHTML(d,pos)}
+      html += `<div class="row${d.art ? " has-art" : ""}"${rowArt(d)} role="button" tabindex="0" data-open="${d.id}">
+        <div class="thumbcol">${thumbHTML(d,pos)}${tagsHTML(d, true)}</div>
         <div class="row-main">
           <div class="row-title"><span class="pos${pc}">#${pos}</span><span class="name">${esc(d.name)}</span></div>
           <div class="meta">publicado por ${esc(d.publisher || d.creator || "—")}${d.verifier ? " · verificado por "+esc(d.verifier) : ""}</div>
@@ -746,7 +776,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     let html = `<button class="back" id="back">← Volver a la lista</button>
     ${stageOpen(d)}
     <div class="detail-hero">
-      ${ts ? `<div class="thumb"><img src="${esc(ts)}" alt="Miniatura de ${esc(d.name)}"></div>` : `<div class="thumb"><span class="ph">#${pos}</span></div>`}
+      <div class="thumbcol">${ts ? `<div class="thumb"><img src="${esc(ts)}" alt="Miniatura de ${esc(d.name)}"></div>` : `<div class="thumb"><span class="ph">#${pos}</span></div>`}${tagsHTML(d, false)}</div>
       <div style="min-width:0">
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px"><span class="pos${pos<=3?" p"+pos:""}">#${pos}</span>${chip}</div>
         <h2>${esc(d.name)}</h2>
@@ -765,6 +795,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       </div>
     </div>
     ${d.notes ? `<div class="panel" style="margin-top:16px"><h3>Notas</h3><p>${esc(d.notes)}</p></div>` : ""}
+    <div class="panel" id="opinions" style="margin-top:16px">${opinionsHTML(d)}</div>
     <div class="section-head" style="margin-top:22px;margin-bottom:0"><h2>Récords</h2><span class="count">${recs.length} ${recs.length===1?"récord":"récords"}${progOk?` · list%: ${req}%`:basePoints(pos)?" · solo cuenta el 100%":""}</span></div>`;
     if (!recs.length) return html + `<div class="empty" style="margin-top:12px"><strong>Sin récords aún</strong>${editing?"Pulsa “Editar demon” para añadir récords.":"Nadie ha registrado progreso en este nivel."}</div></div>`;
     html += `<div class="tablebox"><table><thead><tr><th>Jugador</th><th>Progreso</th><th>Puntos</th><th>Video</th></tr></thead><tbody>`;
@@ -789,14 +820,19 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   }
 
   function statsHTML(){
-    const rows = buildPlayers();
-    let html = `<div class="section-head"><h2>Leaderboard</h2><span class="count">${rows.length} jugadores · toca un nombre para ver su perfil</span></div>`;
+    const rows = sortedBoard();
+    let html = `<div class="section-head"><h2>Leaderboard</h2><span class="count">${rows.length} jugadores · toca un nombre para ver su perfil</span>
+      <div class="seg" role="group" aria-label="Ordenar por" style="margin:0 0 0 auto">
+        <button type="button" data-lbsort="pts" aria-pressed="${lbSort==="pts"}">Puntos</button>
+        <button type="button" data-lbsort="count" aria-pressed="${lbSort==="count"}">Más extremes</button>
+        <button type="button" data-lbsort="hard" aria-pressed="${lbSort==="hard"}">Más difíciles</button>
+      </div></div>`;
     if (!rows.length) return html + `<div class="empty"><strong>Todavía no hay récords</strong>La tabla se llena sola cuando agregas récords o verificadores a los demons.</div>`;
     html += `<div class="tablebox" style="margin-top:0"><table><thead><tr><th>#</th><th>Jugador</th><th>Puntos</th><th>Completados</th><th>Verificados</th><th>En progreso</th><th>Más difícil</th></tr></thead><tbody>`;
     for (const p of rows){
       const done = p.entries.filter(e => e.progress >= 100 && !e.upcoming);
       const hardest = done.reduce((a,e) => !a || e.pos < a.pos ? e : a, null);
-      html += `<tr><td class="num">${p.rank}</td><td><span class="pcell">${avHTML(p.name, playerAvatar(p.name), 30)}${plink(p.name)}</span></td><td class="num">${fmt(p.pts)}</td>
+      html += `<tr><td class="num">${p.boardRank}</td><td><span class="pcell">${avHTML(p.name, playerAvatar(p.name), 30)}${plink(p.name)}</span></td><td class="num">${fmt(p.pts)}</td>
         <td class="num">${done.length}</td><td class="num">${p.entries.filter(e=>e.verified).length}</td>
         <td class="num">${p.entries.filter(e=>e.progress<100 || e.upcoming).length}</td>
         <td>${hardest?esc(hardest.d.name)+` <span class="hint">(#${hardest.pos})</span>`:"—"}</td></tr>`;
@@ -1022,11 +1058,11 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   function upListHTML(){
     const all = (state.upcoming||[]).map((d,i) => ({d, pos:i+1}));
     const q = query.trim().toLowerCase();
-    const items = q ? all.filter(x => [x.d.name,x.d.creator,x.d.publisher,x.d.player].join(" ").toLowerCase().includes(q)) : all;
+    const items = (q ? all.filter(x => [x.d.name,x.d.creator,x.d.publisher,x.d.player].join(" ").toLowerCase().includes(q)) : all).filter(x => matchTags(x.d));
     let html = `<div class="section-head"><h2>Futuros niveles</h2><span class="count">${all.length} ${all.length===1?"nivel":"niveles"} en progreso</span>
-      <input class="search" id="search" type="search" placeholder="Buscar nivel o jugador" value="${esc(query)}" aria-label="Buscar"></div>`;
+      <input class="search" id="search" type="search" placeholder="Buscar nivel o jugador" value="${esc(query)}" aria-label="Buscar">${tagButton()}</div>${tagBar(all.map(x => x.d))}`;
     if (!all.length) return html + `<div class="empty"><strong>Todavía no hay futuros niveles</strong>${editing ? "Pulsa “+ Futuro nivel” en el panel del editor para agregar uno." : "Aquí aparecerán los niveles que alguien está por completar por primera vez."}</div>`;
-    if (!items.length) return html + `<div class="empty"><strong>Sin resultados</strong>Prueba con otro nombre.</div>`;
+    if (!items.length) return html + `<div class="empty"><strong>Sin resultados</strong>Prueba con otro nombre o quita algún tag del filtro.</div>`;
     html += `<div class="list">`;
     for (const {d,pos} of items){
       const pct = clampPct(d.progress);
@@ -1037,8 +1073,8 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
           <button class="ibtn" data-uact="promote" data-id="${d.id}" title="Pasar a la lista">→ Lista</button>
           <button class="ibtn" data-uact="torun" data-id="${d.id}" title="Pasar a Hardest runs">→ Runs</button></div>`
         : `<div class="pts pct">${pct}%<small>progreso</small></div>`;
-      html += `<div class="row" role="button" tabindex="0" data-uopen="${d.id}">
-        ${thumbHTML(d,pos)}
+      html += `<div class="row${d.art ? " has-art" : ""}"${rowArt(d)} role="button" tabindex="0" data-uopen="${d.id}">
+        <div class="thumbcol">${thumbHTML(d,pos)}${tagsHTML(d, true)}</div>
         <div class="row-main">
           <div class="row-title"><span class="name">${esc(d.name)}</span></div>
           <div class="meta">${d.player ? "progreso de "+esc(d.player)+" · " : ""}publicado por ${esc(d.publisher || d.creator || "—")}</div>
@@ -1077,7 +1113,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     return `<button class="back" id="uback">← Volver a futuros niveles</button>
     ${stageOpen(d)}
     <div class="detail-hero">
-      ${ts ? `<div class="thumb"><img src="${esc(ts)}" alt="Miniatura de ${esc(d.name)}"></div>` : `<div class="thumb"><span class="ph">?</span></div>`}
+      <div class="thumbcol">${ts ? `<div class="thumb"><img src="${esc(ts)}" alt="Miniatura de ${esc(d.name)}"></div>` : `<div class="thumb"><span class="ph">?</span></div>`}${tagsHTML(d, false)}</div>
       <div style="min-width:0">
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px"><span class="chip ext">Futuro nivel</span></div>
         <h2>${esc(d.name)}</h2>
@@ -1123,6 +1159,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       </div>
       <label class="f" style="margin-top:12px">Miniatura personalizada <span class="hint">Opcional. Si la dejas vacía se usa la del video de YouTube.</span>
         ${imgField("u_thumb", d.thumb, "URL de una imagen")}</label>
+      ${tagPicker("u", d.tags)}
       ${artFields("u", d)}
       <label class="f" style="margin-top:12px">Notas<textarea id="u_notes" rows="2">${esc(d.notes)}</textarea></label>
       ${moveCheckbox(opts)}
@@ -1143,7 +1180,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         e.preventDefault();
         const nd = {...d, name:$("#u_name").value.trim(), publisher:$("#u_pub").value.trim(), creator:$("#u_cre").value.trim(),
           player:$("#u_pl").value.trim(), progress:clampPct($("#u_pr").value), levelId:$("#u_lid").value.trim(),
-          video:$("#u_vid").value.trim(), thumb:$("#u_thumb").value.trim(), notes:$("#u_notes").value.trim(), ...readArt("u")};
+          video:$("#u_vid").value.trim(), thumb:$("#u_thumb").value.trim(), notes:$("#u_notes").value.trim(), ...readArt("u"), tags: readTags("u")};
         if (!nd.name){ $("#uStatus").textContent = "Escribe el nombre del nivel."; return; }
         const arr = list.filter(x=>x.id!==d.id);
         const p = Math.max(1, Math.min(arr.length+1, Number($("#u_pos").value)||arr.length+1));
@@ -1164,24 +1201,24 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   function runsListHTML(){
     const all = (state.runs||[]).map((d,i) => ({d, pos:i+1}));
     const q = query.trim().toLowerCase();
-    const items = q ? all.filter(x => [x.d.name, x.d.creator, x.d.publisher, ...(x.d.records||[]).map(rr => rr.player)].join(" ").toLowerCase().includes(q)) : all;
+    const items = (q ? all.filter(x => [x.d.name, x.d.creator, x.d.publisher, ...(x.d.records||[]).map(rr => rr.player)].join(" ").toLowerCase().includes(q)) : all).filter(x => matchTags(x.d));
     let html = `<div class="section-head"><h2>Hardest runs</h2><span class="count">${all.length} ${all.length===1?"nivel":"niveles"} con runs destacados</span>
-      <input class="search" id="search" type="search" placeholder="Buscar nivel o jugador" value="${esc(query)}" aria-label="Buscar"></div>`;
+      <input class="search" id="search" type="search" placeholder="Buscar nivel o jugador" value="${esc(query)}" aria-label="Buscar">${tagButton()}</div>${tagBar(all.map(x => x.d))}`;
     if (!all.length) return html + `<div class="empty"><strong>Todavía no hay hardest runs</strong>${editing ? "Pulsa “+ Hardest run” en el panel del editor para agregar un nivel." : "Aquí saldrán los runs más difíciles, como un 20–100% en un nivel extremo."}</div>`;
-    if (!items.length) return html + `<div class="empty"><strong>Sin resultados</strong>Prueba con otro nombre.</div>`;
+    if (!items.length) return html + `<div class="empty"><strong>Sin resultados</strong>Prueba con otro nombre o quita algún tag del filtro.</div>`;
     html += `<div class="list" data-src="runs">`;
     for (const {d,pos} of items){
       const b = bestRun(d), pc = pos<=3 ? " p"+pos : "";
       const tools = editing ? `<div class="edit-tools" data-stop>
-          ${q ? "" : `<span class="drag" data-drag="${d.id}" title="Arrastra para mover" aria-label="Arrastrar para mover">⠿</span>`}
+          ${q || tagFilter.size ? "" : `<span class="drag" data-drag="${d.id}" title="Arrastra para mover" aria-label="Arrastrar para mover">⠿</span>`}
           <button class="ibtn" data-ract="up" data-id="${d.id}" ${pos===1?"disabled":""} aria-label="Subir">▲</button>
           <button class="ibtn" data-ract="down" data-id="${d.id}" ${pos===all.length?"disabled":""} aria-label="Bajar">▼</button>
           <button class="ibtn" data-ract="edit" data-id="${d.id}">Editar</button>
           <button class="ibtn" data-ract="todemon" data-id="${d.id}" title="Copiar a la lista">→ Lista</button>
           <button class="ibtn" data-ract="toup" data-id="${d.id}" title="Pasar a Futuros niveles">→ Futuros</button></div>`
         : `<div class="pts pct">${b ? `${clampPct(b.from)}–${clampPct(b.to)}%` : "—"}<small>mejor run</small></div>`;
-      html += `<div class="row" role="button" tabindex="0" data-ropen="${d.id}">
-        ${thumbHTML(d,pos)}
+      html += `<div class="row${d.art ? " has-art" : ""}"${rowArt(d)} role="button" tabindex="0" data-ropen="${d.id}">
+        <div class="thumbcol">${thumbHTML(d,pos)}${tagsHTML(d, true)}</div>
         <div class="row-main">
           <div class="row-title"><span class="pos${pc}">#${pos}</span><span class="name">${esc(d.name)}</span></div>
           <div class="meta">${b ? "mejor run de " + esc(b.player) + " · " : ""}${(d.records||[]).length} ${(d.records||[]).length===1?"run":"runs"}${d.publisher||d.creator ? " · publicado por " + esc(d.publisher||d.creator) : ""}</div>
@@ -1221,7 +1258,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     let html = `<button class="back" id="rback">← Volver a hardest runs</button>
     ${stageOpen(d)}
     <div class="detail-hero">
-      ${ts ? `<div class="thumb"><img src="${esc(ts)}" alt="Miniatura de ${esc(d.name)}"></div>` : `<div class="thumb"><span class="ph">#${pos}</span></div>`}
+      <div class="thumbcol">${ts ? `<div class="thumb"><img src="${esc(ts)}" alt="Miniatura de ${esc(d.name)}"></div>` : `<div class="thumb"><span class="ph">#${pos}</span></div>`}${tagsHTML(d, false)}</div>
       <div style="min-width:0">
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px"><span class="pos${pos<=3?" p"+pos:""}">#${pos}</span><span class="chip ext">Hardest runs</span></div>
         <h2>${esc(d.name)}</h2>
@@ -1286,6 +1323,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       </div>
       <label class="f" style="margin-top:12px">Miniatura personalizada <span class="hint">Opcional. Si la dejas vacía se usa la del video de YouTube.</span>
         ${imgField("r_thumb", d.thumb, "URL de una imagen")}</label>
+      ${tagPicker("r", d.tags)}
       ${artFields("r", d)}
       <label class="f" style="margin-top:12px">Notas<textarea id="r_notes" rows="2">${esc(d.notes)}</textarea></label>
       <div class="sub">Otros runs <span class="hint">opcional</span></div>
@@ -1327,7 +1365,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         const bad = recs.find(x => x.from >= x.to);
         if (bad){ $("#rStatus").textContent = `El run de ${bad.player} debe empezar antes de donde termina.`; return; }
         const nd = {...d, name:$("#r_name").value.trim(), publisher:$("#r_pub").value.trim(), creator:$("#r_cre").value.trim(),
-          levelId:$("#r_lid").value.trim(), video:$("#r_vid").value.trim(), thumb:$("#r_thumb").value.trim(), notes:$("#r_notes").value.trim(), records:recs, ...readArt("r")};
+          levelId:$("#r_lid").value.trim(), video:$("#r_vid").value.trim(), thumb:$("#r_thumb").value.trim(), notes:$("#r_notes").value.trim(), records:recs, ...readArt("r"), tags: readTags("r")};
         if (!nd.name){ $("#rStatus").textContent = "Escribe el nombre del nivel."; return; }
         const arr = list.filter(x=>x.id!==d.id);
         const p = Math.max(1, Math.min(arr.length+1, Number($("#r_pos").value)||arr.length+1));
@@ -2052,6 +2090,137 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     });
   }
 
+
+  // ---------- tags ----------
+  const TAGS = ["2.2","2.1","2.0","1.9PS","1.9","1.8","1.7","1.6PS","1.6","1.5","Medium","Long","XL","XXL","XXL+","NONG","2P","Circles","Clicksync",
+    "Fast-Paced","Timings","Chokepoints","Unbalanced","Learny","Memory","High CPS","Gimmicky","Flow","Slow-Paced","Bossfight","Mirror","Nerve Control",
+    "Cube","Ship","Ball","UFO","Wave","Robot","Spider","Old Swing","New Swing","Duals","Overall"];
+  const levelTags = d => (Array.isArray(d.tags) ? d.tags : []).filter(t => TAGS.includes(t)).sort((a,b) => TAGS.indexOf(a) - TAGS.indexOf(b));
+  const matchTags = d => { if (!tagFilter.size) return true; const t = levelTags(d); return [...tagFilter].every(x => t.includes(x)); };
+  function tagsHTML(d, inRow){
+    const t = levelTags(d); if (!t.length) return "";
+    return `<div class="tags"${inRow ? " data-stop" : ""}>${t.map(x => `<button type="button" class="tag${tagFilter.has(x) ? " on" : ""}" data-tagf="${esc(x)}" title="Filtrar por ${esc(x)}">${esc(x)}</button>`).join("")}</div>`;
+  }
+  function tagButton(){
+    return `<button type="button" class="tagbtn${tagFilter.size ? " has" : ""}" id="tagBtn" aria-expanded="${tagPanel}">Tags${tagFilter.size ? ` (${tagFilter.size})` : ""}</button>`;
+  }
+  function tagBar(levels){
+    if (!tagPanel) return "";
+    const count = new Map(); levels.forEach(d => levelTags(d).forEach(t => count.set(t, (count.get(t)||0) + 1)));
+    return `<div class="tagbar">${TAGS.map(t => `<button type="button" class="tag${tagFilter.has(t) ? " on" : ""}" data-tagf="${esc(t)}" ${!count.get(t) && !tagFilter.has(t) ? 'style="opacity:.45"' : ""}>${esc(t)}${count.get(t) ? ` · ${count.get(t)}` : ""}</button>`).join("")}
+      ${tagFilter.size ? `<button type="button" class="ibtn" id="tagClear" style="margin-left:auto">Quitar filtros</button>` : ""}</div>`;
+  }
+  function tagPicker(px, sel){
+    const on = new Set(Array.isArray(sel) ? sel : []);
+    return `<div class="sub">Tags</div><div class="tagpick" id="${px}_tags">${TAGS.map(t => `<label class="tagopt"><input type="checkbox" data-tag="${esc(t)}" ${on.has(t) ? "checked" : ""} hidden><span>${esc(t)}</span></label>`).join("")}</div>`;
+  }
+  const readTags = px => [...document.querySelectorAll(`#${px}_tags [data-tag]:checked`)].map(c => c.dataset.tag);
+  // Imagen personalizada del nivel en el tercio derecho de la tarjeta
+  const rowArt = d => d.art ? ` style="--rowart:url('${cssUrl(d.art)}')"` : "";
+  // Clics en tags, filtro y orden del leaderboard (sirve para todas las pestañas)
+  document.getElementById("view").addEventListener("click", e => {
+    const t = e.target.closest("[data-tagf]");
+    if (t){
+      e.stopPropagation();
+      const x = t.dataset.tagf; tagFilter.has(x) ? tagFilter.delete(x) : tagFilter.add(x);
+      // Desde la página de un nivel, el clic lleva a la lista filtrada
+      if (openDemon || openUp || openRun){ openDemon = openUp = openRun = null; tagFilter = new Set([x]); }
+      render(); return;
+    }
+    if (e.target.closest("#tagBtn")){ tagPanel = !tagPanel; render(); return; }
+    if (e.target.closest("#tagClear")){ tagFilter.clear(); render(); return; }
+    const sb = e.target.closest("[data-lbsort]");
+    if (sb){ lbSort = sb.dataset.lbsort; render(); }
+  });
+
+  // ---------- orden del leaderboard ----------
+  function sortedBoard(){
+    const rows = buildPlayers().map(p => {
+      const done = p.entries.filter(e => e.progress >= 100 && !e.upcoming);
+      return {p, count: done.length, best: done.reduce((m, e) => Math.min(m, e.pos), Infinity)};
+    });
+    const cmp = {
+      pts: (a,b) => b.p.pts - a.p.pts || b.count - a.count,
+      count: (a,b) => b.count - a.count || b.p.pts - a.p.pts,
+      hard: (a,b) => a.best - b.best || b.count - a.count || b.p.pts - a.p.pts
+    }[lbSort] || ((a,b) => b.p.pts - a.p.pts);
+    rows.sort((a,b) => cmp(a,b) || a.p.name.localeCompare(b.p.name));
+    return rows.map((x, i) => Object.assign(x.p, {boardRank: i + 1}));
+  }
+
+  // ---------- opiniones y enjoyment ----------
+  function canReview(d){
+    if (!me) return false;
+    return pkey(d.verifier) === me.k || (d.records||[]).some(rr => pkey(rr.player) === me.k);
+  }
+  function opinionsHTML(d){
+    const data = opCache.get(d.id);
+    if (!data){ loadOpinions(d.id); return `<h3>Enjoyment</h3><p class="hint" style="margin:0">Cargando opiniones…</p>`; }
+    if (data.error) return `<h3>Enjoyment</h3><p class="status err" style="margin:0">No se pudieron cargar las opiniones.</p>`;
+    const mine = me ? data.items.find(x => pkey(x.name) === me.k) : null;
+    let html = `<h3>Enjoyment</h3>
+      <div class="enjoy"><div class="enjoy-num">${data.avg !== null ? data.avg : "—"}<small>/100</small></div>
+        <p class="hint" style="margin:0">${data.count ? `Promedio de ${data.count} ${data.count === 1 ? "opinión" : "opiniones"} de jugadores que completaron el nivel o tienen su list%.` : "Todavía nadie ha opinado sobre este nivel."}</p></div>`;
+    if (data.items.length){
+      html += `<div class="ops">${data.items.map(x => `<div class="op">${avHTML(x.name, playerAvatar(x.name), 32)}
+        <div style="min-width:0">${plink(x.name)} <span class="hint">· ${new Date(x.date).toLocaleDateString("es")}</span></div>
+        <span class="opscore">${x.score}/100</span>
+        ${x.text ? `<div class="optext">${esc(x.text)}</div>` : ""}
+        ${editing && !(me && pkey(x.name) === me.k) ? `<div class="optext"><button type="button" class="ibtn" data-opdel="${esc(x.name)}">Borrar opinión</button></div>` : ""}
+      </div>`).join("")}</div>`;
+    }
+    if (!me) html += `<p class="hint" style="margin:14px 0 0">¿Te pasaste este nivel o tienes su list%? <button type="button" class="plink" id="opLogin">Inicia sesión</button> para dar tu opinión.</p>`;
+    else if (!canReview(d)) html += `<p class="hint" style="margin:14px 0 0">Solo pueden opinar quienes completaron el nivel o tienen su list%.</p>`;
+    else html += `<form class="opform" id="opForm">
+        <label class="f">Tu opinión <span class="hint">opcional</span><textarea id="op_text" rows="2" maxlength="500" placeholder="¿Qué te pareció el nivel?">${esc(mine ? mine.text : "")}</textarea></label>
+        <label class="f">Enjoyment (1–100)<input id="op_score" type="number" min="1" max="100" required value="${mine ? mine.score : ""}" placeholder="75"></label>
+        <div class="btn-row" style="align-items:center"><button class="btn primary" type="submit">${mine ? "Actualizar mi opinión" : "Publicar opinión"}</button>
+          ${mine ? `<button type="button" class="btn" id="opDelMine">Borrar mi opinión</button>` : ""}<span class="status" id="opStatus"></span></div>
+      </form>`;
+    return html;
+  }
+  const opLoading = new Set();
+  async function loadOpinions(id){
+    if (opCache.has(id) || opLoading.has(id)) return;
+    opLoading.add(id);
+    try {
+      const r = await fetch("/api/opiniones?level=" + encodeURIComponent(id), {cache:"no-store"});
+      const d = await r.json(); if (!r.ok) throw new Error(d.error);
+      opCache.set(id, d);
+    } catch { opCache.set(id, {error: true}); }
+    opLoading.delete(id);
+    refreshOpinions(id);
+  }
+  function refreshOpinions(id){
+    const box = document.getElementById("opinions");
+    const d = state.demons.find(x => x.id === id);
+    if (!box || openDemon !== id || !d) return;
+    box.innerHTML = opinionsHTML(d); bindOpinions(); bindPlayerLinks();
+  }
+  function bindOpinions(){
+    const d = state.demons.find(x => x.id === openDemon); if (!d) return;
+    $("#opLogin")?.addEventListener("click", () => openAccountLogin("login"));
+    const f = $("#opForm");
+    if (f) f.addEventListener("submit", async e => {
+      e.preventDefault();
+      $("#opStatus").textContent = "Guardando…";
+      try {
+        const res = await api("/api/opiniones", {level: d.id, score: Math.round(+$("#op_score").value), text: $("#op_text").value});
+        opCache.set(d.id, res); refreshOpinions(d.id);
+      } catch (err) { $("#opStatus").textContent = err.message; if (err.status === 401){ clearSession(); render(); } }
+    });
+    $("#opDelMine")?.addEventListener("click", async () => {
+      try { const res = await api("/api/opiniones?level=" + encodeURIComponent(d.id), null, "DELETE"); opCache.set(d.id, res); refreshOpinions(d.id); } catch {}
+    });
+    document.querySelectorAll("[data-opdel]").forEach(b => b.onclick = async () => {
+      if (!b.dataset.confirm){ b.dataset.confirm = "1"; b.textContent = "¿Seguro?"; return; }
+      try {
+        const r = await fetch(`/api/opiniones?level=${encodeURIComponent(d.id)}&name=${encodeURIComponent(b.dataset.opdel)}`, {method:"DELETE", headers:{"x-admin-password": password}});
+        const res = await r.json(); if (r.ok){ opCache.set(d.id, res); refreshOpinions(d.id); }
+      } catch {}
+    });
+  }
+
   // ---------- guardar ----------
   let saving = Promise.resolve();
   function setStatus(msg, cls=""){ const s=$("#saveStatus"); s.textContent=msg; s.className="status "+cls; }
@@ -2191,7 +2360,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   }
 
   // ---------- pasar niveles entre la lista, futuros niveles y hardest runs ----------
-  const LEVEL_FIELDS = ["name","publisher","creator","levelId","video","thumb","notes","art","artOpacity","artInProfile","profileImg"];
+  const LEVEL_FIELDS = ["name","publisher","creator","levelId","video","thumb","notes","art","artOpacity","artInProfile","profileImg","tags"];
   const KIND_NAME = {d:"la lista", u:"Futuros niveles", r:"Hardest runs"};
   function findSource(key){
     const [kind, id] = String(key||"").split(":");
@@ -2253,6 +2422,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       set(px+"_vid", pre.video); set(px+"_thumb", pre.thumb); set(px+"_notes", pre.notes); set(px+"_art", pre.art); set(px+"_pimg", pre.profileImg);
       if (pre.artOpacity !== undefined){ set(px+"_artop", pre.artOpacity); $("#"+px+"_artopv").textContent = pre.artOpacity + "%"; }
       if (pre.artInProfile !== undefined) $("#"+px+"_artprof").checked = pre.artInProfile !== false;
+      if (Array.isArray(pre.tags)) document.querySelectorAll(`#${px}_tags [data-tag]`).forEach(c => { c.checked = pre.tags.includes(c.dataset.tag); });
       if (target === "d" && pre.verifier && !$("#f_ver").value.trim()) set("f_ver", pre.verifier);
       if (target === "u" && pre.player){ set("u_pl", pre.player); set("u_pr", pre.progress); }
       if (target === "r" && pre.records && pre.records[0] && !$("#r_bp").value.trim()){
@@ -2296,6 +2466,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       </div>
       <label class="f" style="margin-top:12px">Miniatura personalizada <span class="hint">Opcional. Si la dejas vacía se usa la del video de YouTube.</span>
         ${imgField("f_thumb", d.thumb, "URL de una imagen")}</label>
+      ${tagPicker("f", d.tags)}
       ${artFields("f", d)}
       <label class="f" style="margin-top:12px">Notas<textarea id="f_notes" rows="2">${esc(d.notes)}</textarea></label>
       <div class="sub">Récords</div>
@@ -2338,7 +2509,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         })).filter(r => r.player);
         const nd = {...d, name:$("#f_name").value.trim(), publisher:$("#f_pub").value.trim(), creator:$("#f_cre").value.trim(),
           verifier:$("#f_ver").value.trim(), levelId:$("#f_lid").value.trim(), req:(()=>{ const r=Number($("#f_req").value); return (r>=1 && r<100) ? Math.round(r) : null; })(),
-          video:$("#f_vid").value.trim(), thumb:$("#f_thumb").value.trim(), notes:$("#f_notes").value.trim(), records:recs, ...readArt("f")};
+          video:$("#f_vid").value.trim(), thumb:$("#f_thumb").value.trim(), notes:$("#f_notes").value.trim(), records:recs, ...readArt("f"), tags: readTags("f")};
         if (!nd.name){ $("#formStatus").textContent = "Escribe el nombre del nivel."; return; }
         const arr = state.demons.filter(x=>x.id!==d.id);
         const p = Math.max(1, Math.min(arr.length+1, Number($("#f_pos").value)||arr.length+1));
