@@ -1432,8 +1432,11 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         <input id="p_yt" value="${esc(((state.players||{})[k]||{}).youtube||"")}" placeholder="https://www.youtube.com/@usuario"></label>
       <label class="f" style="margin-top:12px">Foto personalizada <span class="hint">opcional; reemplaza la de YouTube</span>
         ${imgField("p_av", ((state.players||{})[k]||{}).avatar, "Link de la imagen o pulsa Subir")}</label>
-      <label class="f" style="margin-top:12px">Departamento <span class="hint">si el jugador eligió uno en su perfil, se usa el suyo</span>
-        <select id="p_dept">${deptOptions(((state.players||{})[k]||{}).dept)}</select></label>
+      ${((state.profiles||{})[k]||{}).dept
+        ? `<div class="f" style="margin-top:12px">Departamento <span class="hint">el jugador eligió <b>${esc(deptName(state.profiles[k].dept))}</b> y es definitivo</span>
+            <span class="btn-row"><button type="button" class="btn" id="pDeptFree">Liberar departamento</button></span><input type="hidden" id="p_dept" value="${esc(((state.players||{})[k]||{}).dept||"")}"></div>`
+        : `<label class="f" style="margin-top:12px">Departamento <span class="hint">si el jugador lo elige en su perfil, se usa el suyo</span>
+        <select id="p_dept">${deptOptions(((state.players||{})[k]||{}).dept)}</select></label>`}
       <div class="sub">Badges</div>
       ${(state.badges||[]).some(bd => ruleOf(bd)) ? `<p class="hint" style="margin-top:0">Los badges automáticos se dan solos y no salen aquí.</p>` : ""}
       ${(state.badges||[]).filter(bd => !ruleOf(bd)).length ? `<div class="bdg-pick">${state.badges.filter(bd => !ruleOf(bd)).map(bd => `<label><input type="checkbox" data-badge="${esc(bd.id)}" ${(((state.players||{})[k]||{}).badges||[]).includes(bd.id) ? "checked" : ""} hidden>${badgeIcon(bd, false)}${esc(bd.name)}</label>`).join("")}</div>`
@@ -1465,6 +1468,17 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
           const d = await r.json().catch(()=>({}));
           $("#pStatus").textContent = r.ok ? "Acceso quitado. La cuenta se puede volver a crear." : (d.error || "No se pudo quitar el acceso.");
         } catch { $("#pStatus").textContent = "No hay conexión con el servidor."; }
+      };
+      const fr = $("#pDeptFree");
+      if (fr) fr.onclick = async () => {
+        if (!fr.dataset.confirm){ fr.dataset.confirm = "1"; fr.textContent = "¿Seguro? Podrá elegir otro"; return; }
+        try {
+          const r = await fetch("/api/cuenta", {method:"POST", headers:{"content-type":"application/json","x-admin-password":password}, body:JSON.stringify({action:"resetdept", name})});
+          if (!r.ok) throw new Error();
+          state.profiles = {...state.profiles, [k]: {...state.profiles[k], dept: ""}};
+          fr.disabled = true; fr.textContent = "Departamento liberado"; $("#pStatus").textContent = "Ahora el jugador puede elegir su departamento otra vez.";
+          render();
+        } catch { $("#pStatus").textContent = "No se pudo liberar."; }
       };
       const db = $("#pDelete");
       db.onclick = async () => {
@@ -1842,8 +1856,11 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         ${imgField("mp_ban", own.banner, "Link de la imagen o pulsa Subir")}</label>
       <label class="f" style="margin-top:12px">Descripción <span class="hint"><span id="mp_bioc">${(own.bio||"").length}</span>/400</span>
         <textarea id="mp_bio" rows="3" maxlength="400" placeholder="Cuéntale algo a la gente: tu nivel favorito, tu canal, desde cuándo juegas…">${esc(own.bio||"")}</textarea></label>
-      <label class="f" style="margin-top:12px">Departamento <span class="hint">para salir en el mapa de El Salvador del leaderboard</span>
-        <select id="mp_dept">${deptOptions(own.dept)}</select></label>
+      ${own.dept ? `<label class="f" style="margin-top:12px">Departamento <span class="hint">es definitivo; si te equivocaste, pide a un moderador que lo libere</span>
+        <select id="mp_dept" disabled>${deptOptions(own.dept)}</select></label>`
+      : `<label class="f" style="margin-top:12px">Departamento <span class="hint">para salir en el mapa de El Salvador del leaderboard</span>
+        <select id="mp_dept">${deptOptions("")}</select></label>
+        <p class="status err" style="margin:6px 0 0">Ojo: el departamento que elijas es <b>definitivo</b>. Después no lo vas a poder cambiar.</p>`}
       <details style="margin-top:14px"><summary class="hint" style="cursor:pointer;font-weight:700">Cambiar contraseña</summary>
         <div class="grid2" style="margin-top:10px">
           <label class="f">Contraseña actual<input id="mp_pw" type="password" autocomplete="current-password"></label>
@@ -1870,10 +1887,19 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
           $("#mpStatus").textContent = "Contraseña cambiada."; $("#mp_pw").value = $("#mp_pw2").value = ""; }
         catch (err) { $("#mpStatus").textContent = err.message; }
       };
+      $("#mp_dept").addEventListener("change", () => { const b = $("#mpf button[type=submit]"); b.dataset.confirm = ""; b.textContent = "Guardar"; });
       $("#mpf").addEventListener("submit", async e => {
         e.preventDefault();
+        // Confirmación antes de fijar el departamento para siempre
+        const newDept = !own.dept && $("#mp_dept").value, sb = $("#mpf button[type=submit]");
+        if (newDept && !sb.dataset.confirm){
+          sb.dataset.confirm = "1";
+          sb.textContent = `Sí, soy de ${deptName(newDept)} (definitivo)`;
+          $("#mpStatus").textContent = "Revisa bien el departamento: no se podrá cambiar.";
+          return;
+        }
         const profile = { nameColor: $("#mp_colDef").checked ? "" : $("#mp_col").value, youtube: $("#mp_yt").value.trim(),
-          avatar: $("#mp_av").value.trim(), banner: $("#mp_ban").value.trim(), bio: $("#mp_bio").value, dept: $("#mp_dept").value };
+          avatar: $("#mp_av").value.trim(), banner: $("#mp_ban").value.trim(), bio: $("#mp_bio").value, dept: own.dept || $("#mp_dept").value };
         $("#mpStatus").textContent = "Guardando…";
         try {
           const d = await api("/api/cuenta", {action:"profile", profile});
