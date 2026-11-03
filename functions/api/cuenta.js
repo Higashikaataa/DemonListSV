@@ -128,6 +128,14 @@ export async function onRequestPost({ request, env }) {
     }
     return json({ ok: true, removedSubs: subs.keys.length });
   }
+  // Moderadores: liberar el departamento de un jugador para que pueda elegirlo otra vez
+  if (action === "resetdept") {
+    if (!isAdmin(request, env)) return json({ error: "Contraseña incorrecta." }, 401);
+    const k = pkey(body.name);
+    const profiles = (await env.LIST.get("profiles", "json")) || {};
+    if (profiles[k]) { profiles[k].dept = ""; await env.LIST.put("profiles", JSON.stringify(profiles)); }
+    return json({ ok: true });
+  }
   if (action === "blocked") {
     if (!isAdmin(request, env)) return json({ error: "Contraseña incorrecta." }, 401);
     return json({ names: await blockedList(env) });
@@ -162,7 +170,10 @@ export async function onRequestPost({ request, env }) {
   }
   if (action === "profile") {
     const profiles = (await env.LIST.get("profiles", "json")) || {};
+    const prev = profiles[me.k] || {};
     profiles[me.k] = cleanProfile(body.profile);
+    // El departamento es definitivo: una vez elegido, solo un moderador puede liberarlo
+    if (prev.dept) profiles[me.k].dept = prev.dept;
     await env.LIST.put("profiles", JSON.stringify(profiles));
     return json({ ok: true, profile: profiles[me.k] });
   }
