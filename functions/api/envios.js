@@ -54,7 +54,7 @@ export async function onRequestPost({ request, env }) {
   let b;
   try { b = await request.json(); } catch { return json({ error: "Datos no válidos." }, 400); }
 
-  const kind = b.kind === "up" || b.kind === "run" ? b.kind : "list";
+  const kind = ["up", "run", "copy"].includes(b.kind) ? b.kind : "list";
   const from = kind === "run" ? Math.round(Number(b.from)) : 0;
   const levelId = String(b.levelId || "").slice(0, 40);
   const levelName = String(b.levelName || "").replace(/[\u0000-\u001f]/g, "").slice(0, 60);
@@ -63,6 +63,28 @@ export async function onRequestPost({ request, env }) {
   const note = String(b.note || "").replace(/[\u0000-\u001f]/g, " ").slice(0, 80);
 
   if (!levelId || !levelName) return json({ error: "Elige un nivel." }, 400);
+
+  // Sugerencia de copia permitida (LDM, startpos, bugfix…): solo quien completó el nivel o tiene su list%
+  if (kind === "copy") {
+    const copyType = String(b.copyType || "").replace(/[\u0000-\u001f]/g, "").trim().slice(0, 30);
+    const gdId = String(b.gdId || "").trim();
+    if (!copyType) return json({ error: "Elige el tipo de copia." }, 400);
+    if (!/^\d{1,12}$/.test(gdId)) return json({ error: "La ID del nivel debe ser solo números." }, 400);
+    const main = await env.LIST.get("main", "json");
+    const d = main && Array.isArray(main.demons) ? main.demons.find(x => x.id === levelId) : null;
+    if (!d) return json({ error: "Ese nivel no está en la lista." }, 404);
+    const pk = n => String(n || "").trim().toLowerCase();
+    if (!(pk(d.verifier) === me.k || (d.records || []).some(r => pk(r.player) === me.k)))
+      return json({ error: "Solo quienes completaron el nivel o tienen su list% pueden sugerir copias." }, 403);
+    const prefix = prefixFor(me.k);
+    const mine = await env.LIST.list({ prefix });
+    if (mine.keys.length >= MAX_PENDING) return json({ error: `Ya tienes ${MAX_PENDING} envíos pendientes. Espera a que los revisen.` }, 429);
+    const id = prefix + Date.now().toString(36) + crypto.randomUUID().slice(0, 6);
+    const meta = { player: me.name, kind, levelId, levelName, copyType, gdId, note, progress: 0, video: "", date: Date.now() };
+    await env.LIST.put(id, "1", { metadata: meta });
+    return json({ ok: true, item: { id, ...meta } });
+  }
+
   if (!(progress >= 1 && progress <= 100)) return json({ error: "El progreso debe estar entre 1 y 100." }, 400);
   if (kind === "run" && !(from >= 0 && from < progress)) return json({ error: "El run debe empezar antes de donde termina (ej. 20 a 100)." }, 400);
   let host = "";
