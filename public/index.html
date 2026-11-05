@@ -59,7 +59,51 @@ main.wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;paddin
 .thumb .ph{font-family:var(--display);font-weight:700;font-size:1.9rem;color:var(--accent);opacity:.85}
 .row-main{min-width:0}
 .row{position:relative;overflow:hidden;isolation:isolate}
-.row.has-art::before{content:"";position:absolute;top:0;bottom:0;left:0;width:55%;z-index:-1;pointer-events:none;opacity:.6;background:var(--rowart) center/cover no-repeat;-webkit-mask-image:linear-gradient(90deg,#000 35%,transparent);mask-image:linear-gradient(90deg,#000 35%,transparent)}
+.row.has-art::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:.85;background:linear-gradient(90deg,rgba(0,0,0,.15),rgba(0,0,0,.45)),var(--rowart) center/cover no-repeat;-webkit-mask-image:linear-gradient(90deg,#000 62%,transparent 86%);mask-image:linear-gradient(90deg,#000 62%,transparent 86%)}
+.divider{display:flex;align-items:center;gap:12px;margin:14px 0 4px;font-family:var(--display);font-weight:700;font-size:1.1rem;color:var(--title);text-transform:uppercase;letter-spacing:.06em}
+.divider::before,.divider::after{content:"";flex:1;height:2px;background:var(--line)}
+.brand{flex-direction:row !important;align-items:center;gap:12px;cursor:pointer}
+.brand .btxt{display:flex;flex-direction:column;min-width:0}
+#siteLogo{width:46px;height:46px;object-fit:contain;border-radius:10px;flex:none}
+.copies{display:flex;flex-wrap:wrap;gap:8px}
+.copy{display:inline-flex;align-items:center;gap:8px;border-radius:9px;padding:6px 6px 6px 10px;font-weight:700;font-size:.88rem;border:1px solid transparent}
+.copy .cid{font-family:var(--display);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.copy .cnote{font-weight:400;opacity:.85;font-size:.8rem}
+.copy button{border:none;border-radius:6px;padding:3px 8px;cursor:pointer;font-weight:700;font-size:.75rem;background:rgba(0,0,0,.25);color:inherit}
+.copy-edit{display:grid;grid-template-columns:150px 140px minmax(0,1fr) auto;gap:6px;margin-bottom:6px}
+.copy-edit input,.copy-edit select{background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:6px 8px;min-width:0;width:100%}
+@media (max-width:520px){.copy-edit{grid-template-columns:1fr 1fr auto}.copy-edit .cn{grid-column:1/-1;grid-row:2}}
+.ct-edit{display:grid;grid-template-columns:minmax(0,1fr) 56px auto;gap:6px;margin-bottom:6px;align-items:center}
+.ct-edit input[type=text]{background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:6px 8px;min-width:0;width:100%}
+.ct-edit input[type=color]{width:56px;height:34px;padding:2px;border:1px solid var(--line);border-radius:7px;background:var(--surface-2)}
+.packs{display:flex;flex-direction:column;gap:18px}
+.pack{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+.pack h3{font-family:var(--display);font-size:1.5rem;margin:0;display:flex;align-items:center;gap:10px;color:var(--title);text-wrap:balance}
+.pack .pdone{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;border:2px solid var(--pc);color:var(--pc);font-size:.95rem}
+.pack .pmeta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:.88rem;color:var(--muted)}
+.tierpill{display:inline-block;padding:3px 9px;border-radius:7px;font-weight:700;font-size:.8rem;color:#111;background:var(--tc);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.pack .pprog{margin-left:auto}
+.pack .pbar{height:7px;border-radius:4px;background:var(--surface-2);margin-top:8px;overflow:hidden}
+.pack .pbar i{display:block;height:100%;background:var(--pc)}
+.pack .psub{font-family:var(--display);font-size:1.2rem;font-weight:700;margin:16px 0 8px;color:var(--title)}
+.packlvs{display:flex;flex-direction:column;gap:6px}
+.packlv{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;min-height:76px;padding:10px 18px;border-radius:10px;overflow:hidden;cursor:pointer;text-align:left;width:100%;border:1px solid var(--line);background:var(--surface-2);color:#fff;isolation:isolate}
+.packlv::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(0,0,0,.7),rgba(0,0,0,.25) 60%,rgba(0,0,0,.45)),var(--img) center/cover no-repeat}
+.packlv.noimg::before{background:linear-gradient(90deg,var(--surface-2),var(--accent-soft))}
+.packlv.noimg{color:var(--fg)}
+.packlv:hover{border-color:var(--pc)}
+.packlv .plpos{font-family:var(--display);font-weight:700;font-size:1.4rem;text-shadow:0 1px 4px rgba(0,0,0,.8)}
+.packlv .plname{font-family:var(--display);font-weight:700;font-size:1.2rem;text-shadow:0 1px 4px rgba(0,0,0,.8);overflow-wrap:anywhere}
+.packlv .plpts{display:block;font-size:.82rem;font-weight:600;opacity:.9}
+.packlv .plok{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;border:2px solid currentColor;font-weight:700}
+.pvictors{display:flex;flex-wrap:wrap;gap:10px}
+.pk-edit{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.lvpick{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px;background:var(--surface-2);display:flex;flex-direction:column;gap:2px}
+.lvpick label{display:flex;gap:8px;align-items:center;font-size:.88rem;padding:3px 6px;border-radius:6px;cursor:pointer}
+.lvpick label:hover{background:var(--surface)}
+.ppacks{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.ppack{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);border-left:4px solid var(--pc);background:var(--surface-2);cursor:pointer;text-align:left}
+.ppack b{font-family:var(--display);color:var(--title)}
 .row.has-art .row-main{text-shadow:0 1px 4px rgba(0,0,0,.85)}
 .row.has-art .row-main .meta{color:#e6e6e6}
 .row.has-art .row-main .name{color:#fff}
@@ -294,16 +338,16 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
 <body>
 <header class="top">
   <div class="wrap">
-    <div class="brand">
-      <h1 id="siteTitle">Demonlist</h1>
-      <p id="siteTag">Cargando lista…</p>
+    <div class="brand" id="brand" role="link" tabindex="0" title="Ir al inicio de la lista">
+      <img id="siteLogo" alt="" hidden>
+      <div class="btxt"><h1 id="siteTitle">Demonlist</h1>
+      <p id="siteTag">Cargando lista…</p></div>
     </div>
     <nav class="tabs" role="tablist" id="tabs">
-      <button class="tab" role="tab" data-tab="main" aria-selected="true">Principal</button>
-      <button class="tab" role="tab" data-tab="ext" aria-selected="false">Extendida</button>
-      <button class="tab" role="tab" data-tab="leg" aria-selected="false">Legacy</button>
+      <button class="tab" role="tab" data-tab="main" aria-selected="true">Lista</button>
       <button class="tab" role="tab" data-tab="up" aria-selected="false">Futuros niveles</button>
       <button class="tab" role="tab" data-tab="runs" aria-selected="false">Hardest runs</button>
+      <button class="tab" role="tab" data-tab="packs" aria-selected="false">Packs</button>
       <button class="tab" role="tab" data-tab="stats" aria-selected="false">Leaderboard</button>
       <button class="tab" role="tab" data-tab="roul" aria-selected="false">Ruleta</button>
       <button class="tab" role="tab" data-tab="send" aria-selected="false">Subir récord</button>
@@ -351,7 +395,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
             <button class="btn" id="addRun">+ Hardest run</button>
             <button class="btn" id="editSite">Editar sitio</button>
           </div>
-          <div class="btn-row"><button class="btn" id="editBadges">Badges</button><button class="btn" id="openBlocked">Nombres bloqueados</button></div>
+          <div class="btn-row"><button class="btn" id="editBadges">Badges</button><button class="btn" id="editPacks">Packs</button><button class="btn" id="editCopyTypes">Tipos de copia</button><button class="btn" id="openBlocked">Nombres bloqueados</button></div>
           <button class="btn" id="openJson">Importar / exportar JSON</button>
           <button class="btn" id="logoutBtn">Salir del modo editor</button>
         </div>
@@ -655,6 +699,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     applyTheme();
     document.title = state.title || "Demonlist";
     $("#siteTitle").textContent = state.title || "Demonlist";
+    { const lg = (state.theme||{}).logo, im = $("#siteLogo"); if (lg){ if (im.getAttribute("src") !== lg) im.src = lg; im.hidden = false; } else { im.hidden = true; im.removeAttribute("src"); } }
     $("#siteTag").textContent = state.tagline || "";
     $("#aboutText").textContent = state.about || "Ranking de demons ordenados por dificultad.";
     $("#legend").innerHTML = `<b>1–${state.mainSize}</b><span>Lista principal</span><b>${state.mainSize+1}–${state.extSize}</b><span>Lista extendida</span><b>${state.extSize+1}+</b><span>Legacy (sin puntos)</span>`;
@@ -676,11 +721,12 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     if (!loaded) return;
     syncHash();
     const v = $("#view");
-    if (openDemon){ v.innerHTML = detailHTML(); bindDetail(); bindPlayerLinks(); bindOpinions(); return; }
+    if (openDemon){ v.innerHTML = detailHTML(); bindDetail(); bindPlayerLinks(); bindOpinions(); bindCopies(); return; }
     if (openPlayer){ v.innerHTML = profileHTML(); bindProfile(); return; }
     if (openUp){ v.innerHTML = upDetailHTML(); bindUpDetail(); return; }
     if (openRun){ v.innerHTML = runDetailHTML(); bindRunDetail(); bindPlayerLinks(); return; }
     if (tab === "runs"){ v.innerHTML = runsListHTML(); bindRunsList(); return; }
+    if (tab === "packs"){ v.innerHTML = packsHTML(); bindPacks(); return; }
     if (tab === "up"){ v.innerHTML = upListHTML(); bindUpList(); return; }
     if (tab === "stats"){ v.innerHTML = statsHTML(); bindPlayerLinks();
       document.querySelectorAll("#deptPanel [data-demon]").forEach(x => x.addEventListener("click", () => { openDemon = x.dataset.demon; render(); window.scrollTo({top:0}); }));
@@ -693,18 +739,20 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   }
 
   function listHTML(){
-    const names = {main:"Lista principal", ext:"Lista extendida", leg:"Legacy"};
-    const all = state.demons.map((d,i) => ({d, pos:i+1})).filter(x => section(x.pos) === tab);
+    const all = state.demons.map((d,i) => ({d, pos:i+1}));
     const q = query.trim().toLowerCase();
     const items = (q ? all.filter(x => [x.d.name,x.d.creator,x.d.verifier,x.d.publisher].join(" ").toLowerCase().includes(q)) : all).filter(x => matchTags(x.d));
-    let html = `<div class="section-head"><h2>${names[tab]}</h2><span class="count">${all.length} demons</span>
+    let html = `<div class="section-head"><h2>Lista</h2><span class="count">${all.length} demons</span>
       <input class="search" id="search" type="search" placeholder="Buscar nivel o creador" value="${esc(query)}" aria-label="Buscar">${tagButton()}</div>${tagBar(all.map(x => x.d))}`;
     if (!state.demons.length)
       return html + `<div class="empty"><strong>La lista está vacía</strong>Entra al modo editor y pulsa “Agregar demon” para empezar.</div>`;
     if (!items.length)
       return html + `<div class="empty"><strong>${q || tagFilter.size ? "Sin resultados" : "Nada en esta sección todavía"}</strong>${q || tagFilter.size ? "Prueba con otro nombre o quita algún tag del filtro." : "Los demons aparecen aquí cuando la lista llega a esas posiciones."}</div>`;
     html += `<div class="list">`;
+    let lastSec = "main";
     for (const {d,pos} of items){
+      const sec = section(pos);
+      if (sec !== lastSec){ html += `<div class="divider">${sec === "ext" ? "Lista Extendida" : "Lista Legacy"}</div>`; lastSec = sec; }
       const pc = pos<=3 ? " p"+pos : "";
       const tools = editing ? `<div class="edit-tools" data-stop>
           ${q || tagFilter.size ? "" : `<span class="drag" data-drag="${d.id}" title="Arrastra para mover" aria-label="Arrastrar para mover">⠿</span>`}
@@ -814,6 +862,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       </div>
     </div>
     ${d.notes ? `<div class="panel" style="margin-top:16px"><h3>Notas</h3><p>${esc(d.notes)}</p></div>` : ""}
+    <div class="panel" id="copies" style="margin-top:16px">${copiesHTML(d)}</div>
     <div class="panel" id="opinions" style="margin-top:16px">${opinionsHTML(d)}</div>
     <div class="section-head" style="margin-top:22px;margin-bottom:0"><h2>Récords</h2><span class="count">${recs.length} ${recs.length===1?"récord":"récords"}${progOk?` · list%: ${req}%`:basePoints(pos)?" · solo cuenta el 100%":""}</span></div>`;
     if (!recs.length) return html + `<div class="empty" style="margin-top:12px"><strong>Sin récords aún</strong>${editing?"Pulsa “Editar demon” para añadir récords.":"Nadie ha registrado progreso en este nivel."}</div></div>`;
@@ -924,6 +973,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         ${sectionBlock("Completados", done, false)}
         ${sectionBlock("En progreso", prog, true, upProg)}
         <div class="panel"><h3>Hardest runs · ${p.runs.length}</h3>${chips(p.runs.slice().sort((a,b)=>a.pos-b.pos), false)}</div>
+        ${profilePacksHTML(p.name)}
       </div>`;
     return html;
   }
@@ -939,6 +989,10 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     }));
     document.querySelectorAll("[data-ropen]").forEach(b => b.addEventListener("click", () => {
       openRun = b.dataset.ropen; openPlayer = null; tab = "runs"; render(); window.scrollTo({top:0});
+    }));
+    document.querySelectorAll("[data-packgo]").forEach(b => b.addEventListener("click", () => {
+      openPlayer = null; tab = "packs"; render();
+      setTimeout(() => document.getElementById("pack-" + b.dataset.packgo)?.scrollIntoView({behavior:"smooth", block:"start"}), 30);
     }));
   }
 
@@ -1961,9 +2015,9 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     if (!mySubs) return `<p class="hint" style="margin:0">Cargando…</p>`;
     if (!mySubs.length) return `<p class="hint" style="margin:0">No tienes envíos esperando revisión.</p>`;
     return `<div class="sublist">${mySubs.map(x => `<div class="subitem" style="grid-template-columns:minmax(0,1fr)"><div class="stxt">
-      <div class="sl">${esc(x.levelName)} · ${x.kind === "run" ? x.from + "–" : ""}${x.progress}%</div>
-      <div class="sm">${x.kind === "up" ? "Futuro nivel · " : x.kind === "run" ? "Hardest run · " : ""}enviado ${new Date(x.date).toLocaleDateString("es")}</div></div>
-      <div class="sacts"><a href="${esc(x.video)}" target="_blank" rel="noopener">Video ↗</a><button class="ibtn" data-cancel="${esc(x.id)}">Cancelar envío</button></div></div>`).join("")}</div>`;
+      <div class="sl">${esc(x.levelName)} · ${x.kind === "copy" ? `${esc(copyTypeName(x.copyType))} · ID ${esc(x.gdId)}` : (x.kind === "run" ? x.from + "–" : "") + x.progress + "%"}</div>
+      <div class="sm">${x.kind === "up" ? "Futuro nivel · " : x.kind === "run" ? "Hardest run · " : x.kind === "copy" ? "Copia permitida · " : ""}enviado ${new Date(x.date).toLocaleDateString("es")}</div></div>
+      <div class="sacts">${x.video ? `<a href="${esc(x.video)}" target="_blank" rel="noopener">Video ↗</a>` : ""}<button class="ibtn" data-cancel="${esc(x.id)}">Cancelar envío</button></div></div>`).join("")}</div>`;
   }
   async function loadMySubs(){
     try { mySubs = (await api("/api/envios")).items; }
@@ -2042,6 +2096,11 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     render();
   }
   function subTarget(x){
+    if (x.kind === "copy"){
+      const i = state.demons.findIndex(d => d.id === x.levelId); if (i < 0) return null;
+      const d = state.demons[i], dup = (d.copies||[]).some(c => String(c.gdId) === String(x.gdId));
+      return {d, pos: i+1, text: dup ? "Esa ID ya está en las copias de este nivel." : "Copia nueva para este nivel"};
+    }
     if (x.kind === "run"){
       const runs = state.runs||[];
       const r0 = x.levelId === "new" ? runs.find(y => pkey(y.name) === pkey(x.levelName)) : runs.find(y => y.id === x.levelId);
@@ -2072,13 +2131,13 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     if (!pending.length) return html + `<div class="empty"><strong>No hay récords pendientes</strong>Cuando un jugador envíe uno, aparecerá aquí.</div>`;
     return html + `<div class="sublist">${pending.map(x => {
       const t = subTarget(x);
-      const where = !t ? "" : x.kind === "run" ? (t.isNew ? "Hardest run nuevo" : `Hardest runs #${t.pos}`) : x.kind === "up" ? (t.isNew ? "Futuro nivel nuevo" : "Futuro nivel") : `#${t.pos} · ${section(t.pos)==="main"?"Lista principal":section(t.pos)==="ext"?"Lista extendida":"Legacy"}`;
+      const where = !t ? "" : x.kind === "copy" ? `#${t.pos} · copia permitida` : x.kind === "run" ? (t.isNew ? "Hardest run nuevo" : `Hardest runs #${t.pos}`) : x.kind === "up" ? (t.isNew ? "Futuro nivel nuevo" : "Futuro nivel") : `#${t.pos} · ${section(t.pos)==="main"?"Lista principal":section(t.pos)==="ext"?"Lista extendida":"Legacy"}`;
       return `<div class="subitem">${avHTML(x.player, playerAvatar(x.player), 40)}<div class="stxt">
-        <div class="sl">${plink(x.player)} · ${esc(x.levelName)} · ${x.kind === "run" ? x.from + "–" : ""}${x.progress}%</div>
+        <div class="sl">${plink(x.player)} · ${esc(x.levelName)} · ${x.kind === "copy" ? `${esc(copyTypeName(x.copyType))} · ID ${esc(x.gdId)}` : (x.kind === "run" ? x.from + "–" : "") + x.progress + "%"}</div>
         <div class="sm">${where ? esc(where) + " · " : ""}enviado ${new Date(x.date).toLocaleString("es")}</div>
         ${t ? `<div class="sm">${esc(t.text)}</div>` : `<div class="warn">Ese nivel ya no existe en la lista. Solo se puede rechazar.</div>`}
         ${x.note ? `<div class="sm">Nota: “${esc(x.note)}”</div>` : ""}</div>
-        <div class="sacts"><a class="btn" href="${esc(x.video)}" target="_blank" rel="noopener">Ver video ↗</a>
+        <div class="sacts">${x.video ? `<a class="btn" href="${esc(x.video)}" target="_blank" rel="noopener">Ver video ↗</a>` : ""}
           ${t ? `<button class="btn primary" data-accept="${esc(x.id)}">Aceptar</button>` : ""}
           <button class="btn danger" data-reject="${esc(x.id)}">Rechazar</button></div></div>`;
     }).join("")}</div>`;
@@ -2102,7 +2161,11 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       const t = subTarget(x); if (!t) return;
       b.disabled = true;
       let next;
-      if (x.kind === "run"){
+      if (x.kind === "copy"){
+        next = {...state, demons: state.demons.map(d => d.id !== x.levelId ? d
+          : (d.copies||[]).some(c => String(c.gdId) === String(x.gdId)) ? d
+          : {...d, copies: [...(d.copies||[]), {type: x.copyType, gdId: String(x.gdId), note: x.note || ""}]})};
+      } else if (x.kind === "run"){
         const rec = {player:x.player, from:x.from||0, to:x.progress, video:x.video};
         if (t.isNew){
           next = {...state, runs: [...(state.runs||[]), {id:uid(), name:x.levelName, publisher:"", creator:"", levelId:"", video:"", thumb:"", notes:"", records:[rec]}]};
@@ -2336,6 +2399,197 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     });
   }
 
+
+  // ---------- copias permitidas ----------
+  const DEFAULT_COPY_TYPES = [
+    {id:"ldm", name:"LDM", color:"#3b82f6"},
+    {id:"startpos", name:"Startpos", color:"#f59e0b"},
+    {id:"bugfix", name:"Bugfix", color:"#22c55e"},
+    {id:"spbugfix", name:"Startpos Bugfix", color:"#a855f7"}
+  ];
+  const copyTypes = () => Array.isArray(state.copyTypes) && state.copyTypes.length ? state.copyTypes : DEFAULT_COPY_TYPES;
+  const copyTypeOf = id => copyTypes().find(t => t.id === id) || {id, name: id, color: "#888888"};
+  const copyTypeName = id => copyTypeOf(id).name;
+  const inkFor = hex => (hexLum(hex) ?? 0) > .4 ? "#111111" : "#ffffff";
+  function copyRow(c={type: copyTypes()[0].id, gdId:"", note:""}){
+    return `<div class="copy-edit"><select data-k="type" aria-label="Tipo">${copyTypes().map(t => `<option value="${esc(t.id)}" ${t.id === c.type ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select>
+      <input data-k="gdId" inputmode="numeric" value="${esc(c.gdId)}" placeholder="ID del nivel" aria-label="ID">
+      <input class="cn" data-k="note" value="${esc(c.note||"")}" placeholder="Nota (opcional, ej. hecha por …)" aria-label="Nota" maxlength="80">
+      <button type="button" class="ibtn" data-cdel aria-label="Quitar copia">✕</button></div>`;
+  }
+  const readCopies = () => [...document.querySelectorAll("#copyRows .copy-edit")].map(r => ({
+    type: r.querySelector('[data-k="type"]').value, gdId: r.querySelector('[data-k="gdId"]').value.replace(/\D/g, ""), note: r.querySelector('[data-k="note"]').value.trim()
+  })).filter(c => c.gdId);
+  function copiesHTML(d){
+    const list = d.copies || [];
+    let html = `<h3>Copias permitidas</h3>`;
+    html += list.length ? `<div class="copies">${list.map(c => { const t = copyTypeOf(c.type); return `<span class="copy" style="background:${t.color};color:${inkFor(t.color)}">${esc(t.name)} <span class="cid">${esc(c.gdId)}</span>${c.note ? `<span class="cnote">${esc(c.note)}</span>` : ""}<button type="button" data-copyid="${esc(c.gdId)}" title="Copiar la ID">Copiar</button></span>`; }).join("")}</div>`
+      : `<p class="hint" style="margin:0">Todavía no hay copias registradas para este nivel.</p>`;
+    if (me && canReview(d)) html += `<details style="margin-top:12px"><summary class="hint" style="cursor:pointer;font-weight:700">Sugerir una copia</summary>
+      <form id="cpForm" class="copy-edit" style="margin-top:10px">
+        <select id="cp_type" aria-label="Tipo">${copyTypes().map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join("")}</select>
+        <input id="cp_id" inputmode="numeric" required placeholder="ID del nivel" aria-label="ID">
+        <input class="cn" id="cp_note" maxlength="80" placeholder="Nota (opcional)" aria-label="Nota">
+        <button class="btn primary" type="submit">Enviar</button>
+      </form><p class="status" id="cpStatus" style="margin:6px 0 0">Un moderador la revisa antes de que salga aquí.</p></details>`;
+    return html;
+  }
+  function bindCopies(){
+    document.querySelectorAll("[data-copyid]").forEach(b => b.onclick = () => {
+      const v = b.dataset.copyid;
+      navigator.clipboard?.writeText(v).then(() => { b.textContent = "¡Copiada!"; setTimeout(() => b.textContent = "Copiar", 1500); }).catch(() => { b.textContent = v; });
+    });
+    const f = $("#cpForm"); if (!f) return;
+    f.addEventListener("submit", async e => {
+      e.preventDefault();
+      const d = state.demons.find(x => x.id === openDemon); if (!d) return;
+      $("#cpStatus").textContent = "Enviando…";
+      try {
+        await api("/api/envios", {kind:"copy", levelId:d.id, levelName:d.name, copyType:$("#cp_type").value, gdId:$("#cp_id").value.trim(), note:$("#cp_note").value.trim()});
+        $("#cpStatus").textContent = "¡Enviada! Un moderador la revisará pronto."; $("#cp_id").value = ""; $("#cp_note").value = ""; mySubs = null;
+      } catch (err) { $("#cpStatus").textContent = err.message; }
+    });
+  }
+  function openCopyTypesEditor(){
+    const row = (t={id:uid(), name:"", color:"#888888"}) => `<div class="ct-edit" data-id="${esc(t.id)}"><input type="text" data-k="name" value="${esc(t.name)}" placeholder="Nombre (ej. LDM)" maxlength="30"><input type="color" data-k="color" value="${esc(t.color)}"><button type="button" class="ibtn" data-del aria-label="Quitar">✕</button></div>`;
+    modal(`<h3>Tipos de copia</h3><p class="hint" style="margin-top:0">Cada tipo tiene su color para distinguirlo en “Copias permitidas”.</p>
+      <form id="ctf"><div id="ctRows">${copyTypes().map(row).join("")}</div><button type="button" class="btn" id="ctAdd">+ Nuevo tipo</button>
+      <div class="foot"><button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit">Guardar</button></div></form>`, close => {
+      $("#cancel").onclick = close;
+      const bind = () => document.querySelectorAll("#ctRows [data-del]").forEach(b => b.onclick = () => b.closest(".ct-edit").remove());
+      $("#ctAdd").onclick = () => { $("#ctRows").insertAdjacentHTML("beforeend", row()); bind(); };
+      bind();
+      $("#ctf").addEventListener("submit", e => {
+        e.preventDefault();
+        const copyTypesNew = [...document.querySelectorAll("#ctRows .ct-edit")].map(r => ({id: r.dataset.id, name: r.querySelector('[data-k="name"]').value.trim(), color: r.querySelector('[data-k="color"]').value})).filter(t => t.name);
+        save({...state, copyTypes: copyTypesNew}); close();
+      });
+    });
+  }
+
+  // ---------- packs ----------
+  const tierOf = id => (state.packTiers||[]).find(t => t.id === id) || null;
+  function sortedPacks(){
+    const order = id => { const i = (state.packTiers||[]).findIndex(t => t.id === id); return i < 0 ? 999 : i; };
+    return (state.packs||[]).map((p,i) => ({p,i})).sort((a,b) => order(a.p.tier) - order(b.p.tier) || a.i - b.i).map(x => x.p);
+  }
+  const packLevels = p => (p.levels||[]).map(id => { const i = state.demons.findIndex(d => d.id === id); return i < 0 ? null : {d: state.demons[i], pos: i+1}; }).filter(Boolean).sort((a,b) => a.pos - b.pos);
+  function completedSet(name){
+    const p = buildPlayers().find(x => pkey(x.name) === pkey(name)); if (!p) return new Set();
+    return new Set(p.entries.filter(e => e.progress >= 100 && !e.upcoming).map(e => e.d.id));
+  }
+  function packVictors(p){
+    const lv = packLevels(p); if (!lv.length) return [];
+    return buildPlayers().filter(pl => { const done = new Set(pl.entries.filter(e => e.progress >= 100 && !e.upcoming).map(e => e.d.id)); return lv.every(x => done.has(x.d.id)); });
+  }
+  const packColor = p => p.color || (tierOf(p.tier) || {}).color || "var(--accent)";
+  function packsHTML(){
+    const packs = sortedPacks();
+    let html = `<div class="section-head"><h2>Packs</h2><span class="count">${packs.length} ${packs.length === 1 ? "pack" : "packs"}${me ? " · tu progreso sale en cada pack" : ""}</span></div>`;
+    if (!packs.length) return html + `<div class="empty"><strong>Todavía no hay packs</strong>${editing ? "Créalos con el botón “Packs” del panel del editor." : "Pronto habrá packs de niveles para completar."}</div>`;
+    const mine = me ? completedSet(me.name) : null;
+    html += `<div class="packs">${packs.map(p => {
+      const lv = packLevels(p), t = tierOf(p.tier), pc = packColor(p), done = mine ? lv.filter(x => mine.has(x.d.id)).length : 0;
+      const victors = packVictors(p), full = mine && lv.length && done === lv.length;
+      return `<section class="pack" id="pack-${esc(p.id)}" style="--pc:${esc(pc)}">
+        <h3>${esc(p.name)}${full ? `<span class="pdone" title="Completaste este pack">✓</span>` : ""}</h3>
+        <div class="pmeta">${t ? `<span class="tierpill" style="--tc:${esc(t.color)};color:${inkFor(t.color)}">${esc(t.name)}</span>` : ""}<span>${lv.length} ${lv.length === 1 ? "nivel" : "niveles"}</span>
+          ${mine ? `<span class="pprog">${done}/${lv.length} completados</span>` : ""}</div>
+        ${mine ? `<div class="pbar"><i style="width:${lv.length ? Math.round(done / lv.length * 100) : 0}%"></i></div>` : `<div class="pbar"><i style="width:100%;opacity:.5"></i></div>`}
+        ${p.desc ? `<p style="margin:10px 0 0">${esc(p.desc)}</p>` : ""}
+        <div class="psub">Niveles</div>
+        <div class="packlvs">${lv.map(({d,pos}) => {
+          const img = profileImg(d), ok = mine && mine.has(d.id);
+          return `<button type="button" class="packlv${img ? "" : " noimg"}" data-packlv="${d.id}"${img ? ` style="--img:url('${cssUrl(img)}')"` : ""}>
+            <span class="plpos">#${pos}</span><span><span class="plname">${esc(d.name)}</span><span class="plpts">${basePoints(pos) ? "+" + fmt(basePoints(pos)) + " puntos" : section(pos) === "leg" ? "Legacy" : ""}</span></span>
+            ${ok ? `<span class="plok" title="Completado">✓</span>` : "<span></span>"}</button>`;
+        }).join("") || `<p class="hint" style="margin:0">Este pack no tiene niveles todavía.</p>`}</div>
+        <div class="psub">Victors (${victors.length})</div>
+        ${victors.length ? `<div class="pvictors">${victors.map(v => `<span class="pcell">${avHTML(v.name, playerAvatar(v.name), 26)}${plink(v.name)}</span>`).join("")}</div>` : `<p class="hint" style="margin:0">Nadie ha completado este pack todavía.</p>`}
+      </section>`;
+    }).join("")}</div>`;
+    return html;
+  }
+  function bindPacks(){
+    bindPlayerLinks();
+    document.querySelectorAll("[data-packlv]").forEach(b => b.onclick = () => { openDemon = b.dataset.packlv; render(); window.scrollTo({top:0}); });
+  }
+  function profilePacksHTML(name){
+    const done = completedSet(name);
+    const list = sortedPacks().filter(p => { const lv = packLevels(p); return lv.length && lv.every(x => done.has(x.d.id)); });
+    return `<div class="panel"><h3>Packs completados · ${list.length}</h3>${list.length ? `<div class="ppacks">${list.map(p => { const t = tierOf(p.tier); return `<button type="button" class="ppack" style="--pc:${esc(packColor(p))}" data-packgo="${esc(p.id)}"><b>${esc(p.name)}</b>${t ? `<span><span class="tierpill" style="--tc:${esc(t.color)};color:${inkFor(t.color)}">${esc(t.name)}</span></span>` : ""}<span class="hint">${packLevels(p).length} niveles</span></button>`; }).join("")}</div>` : `<p class="hint" style="margin:0">Ninguno todavía</p>`}</div>`;
+  }
+  function openPacksEditor(){
+    const packs = sortedPacks();
+    modal(`<h3>Packs</h3>
+      <p class="hint" style="margin-top:0">Los packs se ordenan por tier: el primer tier de la lista es el más fácil.</p>
+      <div class="btn-row" style="margin-bottom:10px"><button type="button" class="btn primary" id="pkNew">+ Nuevo pack</button><button type="button" class="btn" id="pkTiers">Editar tiers</button></div>
+      <div>${packs.map(p => { const t = tierOf(p.tier); return `<div class="pk-edit"><span><b>${esc(p.name)}</b> ${t ? `<span class="tierpill" style="--tc:${esc(t.color)};color:${inkFor(t.color)}">${esc(t.name)}</span>` : ""} <span class="hint">${packLevels(p).length} niveles</span></span>
+        <span class="btn-row"><button type="button" class="ibtn" data-pkedit="${esc(p.id)}">Editar</button></span></div>`; }).join("") || `<p class="hint">Todavía no hay packs.</p>`}</div>
+      <div class="foot"><button type="button" class="btn" id="cancel">Cerrar</button></div>`, close => {
+      $("#cancel").onclick = close;
+      $("#pkNew").onclick = () => openPackForm(null);
+      $("#pkTiers").onclick = openTiersEditor;
+      document.querySelectorAll("[data-pkedit]").forEach(b => b.onclick = () => openPackForm((state.packs||[]).find(p => p.id === b.dataset.pkedit)));
+    });
+  }
+  function openTiersEditor(){
+    const row = (t={id:uid(), name:"", color:"#f5c542"}) => `<div class="ct-edit" data-id="${esc(t.id)}"><input type="text" data-k="name" value="${esc(t.name)}" placeholder="Nombre del tier (ej. Gold Tier)" maxlength="30"><input type="color" data-k="color" value="${esc(t.color)}"><button type="button" class="ibtn" data-del aria-label="Quitar">✕</button></div>`;
+    modal(`<h3>Tiers de packs</h3><p class="hint" style="margin-top:0">Ponlos del más fácil al más difícil. Cada tier tiene su nombre y su color.</p>
+      <form id="tf"><div id="tRows">${(state.packTiers||[]).map(row).join("")}</div><button type="button" class="btn" id="tAdd">+ Nuevo tier</button>
+      <div class="foot"><button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit">Guardar</button></div></form>`, close => {
+      $("#cancel").onclick = close;
+      const bind = () => document.querySelectorAll("#tRows [data-del]").forEach(b => b.onclick = () => b.closest(".ct-edit").remove());
+      $("#tAdd").onclick = () => { $("#tRows").insertAdjacentHTML("beforeend", row()); bind(); };
+      bind();
+      $("#tf").addEventListener("submit", e => {
+        e.preventDefault();
+        const packTiers = [...document.querySelectorAll("#tRows .ct-edit")].map(r => ({id: r.dataset.id, name: r.querySelector('[data-k="name"]').value.trim(), color: r.querySelector('[data-k="color"]').value})).filter(t => t.name);
+        save({...state, packTiers}); close(); openPacksEditor();
+      });
+    });
+  }
+  function openPackForm(p){
+    const isNew = !p;
+    p = p || {id:uid(), name:"", tier:"", color:"", desc:"", levels:[]};
+    const sel = new Set(p.levels||[]);
+    modal(`<h3>${isNew ? "Nuevo pack" : "Editar pack"}</h3><form id="pkf">
+      <div class="grid2">
+        <label class="f">Nombre del pack<input id="pk_name" required maxlength="60" value="${esc(p.name)}" placeholder="Ej. Apocalyptic Trilogy"></label>
+        <label class="f">Tier<select id="pk_tier"><option value="">Sin tier</option>${(state.packTiers||[]).map(t => `<option value="${esc(t.id)}" ${t.id === p.tier ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select></label>
+        <label class="f">Color del pack
+          <span style="display:flex;gap:8px;align-items:center"><input id="pk_color" type="color" value="${esc(p.color || "#7c3aed")}" style="width:56px;height:38px;padding:2px">
+          <label class="hint" style="display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox" id="pk_colorTier" ${p.color ? "" : "checked"}> Usar el color del tier</label></span></label>
+        <label class="f">Descripción <span class="hint">opcional</span><input id="pk_desc" maxlength="200" value="${esc(p.desc||"")}"></label>
+      </div>
+      <label class="f" style="margin-top:12px">Niveles <span class="hint"><span id="pk_count">${sel.size}</span> elegidos</span>
+        <input id="pk_q" type="search" placeholder="Buscar nivel">
+      </label>
+      <div class="lvpick" id="pk_levels" style="margin-top:6px">${state.demons.map((d,i) => `<label data-name="${esc(d.name.toLowerCase())}"><input type="checkbox" value="${esc(d.id)}" ${sel.has(d.id) ? "checked" : ""}> #${i+1} · ${esc(d.name)}</label>`).join("")}</div>
+      <div class="foot"><span class="status" id="pkStatus"></span>
+        ${isNew ? "" : `<button type="button" class="btn danger" id="pkDel">Eliminar</button>`}
+        <button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit">${isNew ? "Crear pack" : "Guardar"}</button></div></form>`, close => {
+      $("#cancel").onclick = () => { close(); openPacksEditor(); };
+      $("#pk_color").addEventListener("input", () => $("#pk_colorTier").checked = false);
+      $("#pk_q").addEventListener("input", e => { const q = e.target.value.trim().toLowerCase(); document.querySelectorAll("#pk_levels label").forEach(l => l.hidden = q && !l.dataset.name.includes(q)); });
+      $("#pk_levels").addEventListener("change", () => $("#pk_count").textContent = document.querySelectorAll("#pk_levels input:checked").length);
+      const del = $("#pkDel");
+      if (del) del.onclick = () => {
+        if (!del.dataset.confirm){ del.dataset.confirm = "1"; del.textContent = "¿Seguro? Pulsa otra vez"; return; }
+        save({...state, packs: (state.packs||[]).filter(x => x.id !== p.id)}); close(); openPacksEditor();
+      };
+      $("#pkf").addEventListener("submit", e => {
+        e.preventDefault();
+        const np = {...p, name: $("#pk_name").value.trim(), tier: $("#pk_tier").value, color: $("#pk_colorTier").checked ? "" : $("#pk_color").value,
+          desc: $("#pk_desc").value.trim(), levels: [...document.querySelectorAll("#pk_levels input:checked")].map(c => c.value)};
+        if (!np.name){ $("#pkStatus").textContent = "Escribe el nombre del pack."; return; }
+        if (!np.levels.length){ $("#pkStatus").textContent = "Elige al menos un nivel."; return; }
+        const packs = isNew ? [...(state.packs||[]), np] : (state.packs||[]).map(x => x.id === p.id ? np : x);
+        save({...state, packs}); close(); openPacksEditor();
+      });
+    });
+  }
+
   // ---------- guardar ----------
   let saving = Promise.resolve();
   function setStatus(msg, cls=""){ const s=$("#saveStatus"); s.textContent=msg; s.className="status "+cls; }
@@ -2383,6 +2637,8 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     state.changelog = Array.isArray(state.changelog) ? state.changelog : [];
     state.mods = Array.isArray(state.mods) ? state.mods : [];
     state.badges = Array.isArray(state.badges) ? state.badges : [];
+    state.packs = Array.isArray(state.packs) ? state.packs : [];
+    state.packTiers = Array.isArray(state.packTiers) ? state.packTiers : [];
     state.players = (state.players && typeof state.players === "object" && !Array.isArray(state.players)) ? state.players : {};
     state.profiles = (state.profiles && typeof state.profiles === "object" && !Array.isArray(state.profiles)) ? state.profiles : {};
     serverRev = Number(d.rev) || 0;
@@ -2584,6 +2840,9 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       ${tagPicker("f", d.tags)}
       ${artFields("f", d)}
       <label class="f" style="margin-top:12px">Notas<textarea id="f_notes" rows="2">${esc(d.notes)}</textarea></label>
+      <div class="sub">Copias permitidas</div>
+      <div id="copyRows">${(d.copies||[]).map(copyRow).join("")}</div>
+      <button type="button" class="btn" id="addCopy">+ Añadir copia</button>
       <div class="sub">Récords</div>
       <div id="recs">${(d.records||[]).map(recRow).join("")}</div>
       <div class="btn-row"><button type="button" class="btn" id="addRec">+ Añadir récord</button><button type="button" class="btn" id="sortRec">Ordenar por progreso</button></div>
@@ -2597,6 +2856,9 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       </div></form>`, close => {
       $("#cancel").onclick = close;
       bindUploads($("#formStatus")); bindArt("f");
+      const bindCopyDel = () => document.querySelectorAll("#copyRows [data-cdel]").forEach(b => b.onclick = () => b.closest(".copy-edit").remove());
+      $("#addCopy").onclick = () => { $("#copyRows").insertAdjacentHTML("beforeend", copyRow()); bindCopyDel(); };
+      bindCopyDel();
       const others = isNew ? state.demons.length : state.demons.length - 1;
       document.querySelectorAll("[data-sec]").forEach(b => b.onclick = () => {
         const end = b.dataset.sec === "main" ? Math.min(state.mainSize, others+1) : b.dataset.sec === "ext" ? Math.min(state.extSize, others+1) : others+1;
@@ -2624,7 +2886,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         })).filter(r => r.player);
         const nd = {...d, name:$("#f_name").value.trim(), publisher:$("#f_pub").value.trim(), creator:$("#f_cre").value.trim(),
           verifier:$("#f_ver").value.trim(), levelId:$("#f_lid").value.trim(), req:(()=>{ const r=Number($("#f_req").value); return (r>=1 && r<100) ? Math.round(r) : null; })(),
-          video:$("#f_vid").value.trim(), thumb:$("#f_thumb").value.trim(), notes:$("#f_notes").value.trim(), records:recs, ...readArt("f"), tags: readTags("f")};
+          video:$("#f_vid").value.trim(), thumb:$("#f_thumb").value.trim(), notes:$("#f_notes").value.trim(), records:recs, ...readArt("f"), tags: readTags("f"), copies: readCopies()};
         if (!nd.name){ $("#formStatus").textContent = "Escribe el nombre del nivel."; return; }
         const arr = state.demons.filter(x=>x.id!==d.id);
         const p = Math.max(1, Math.min(arr.length+1, Number($("#f_pos").value)||arr.length+1));
@@ -2674,6 +2936,8 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       <p class="hint" id="s_fprev" style="margin:8px 0 0">Vista previa: <span id="s_fpt" style="font-weight:700;font-size:1.1rem">Bloodbath #1</span> · <span id="s_fpb">publicado por Riot</span></p>
       <label class="f" style="margin-top:12px">Imagen de fondo <span class="hint">link directo a una imagen (.jpg, .png, .webp). Vacío = sin imagen.</span>
         ${imgField("s_bg", th.bg, "https://.../fondo.jpg o pulsa Subir")}</label>
+      <label class="f" style="margin-top:12px">Logo <span class="hint">sale al lado del título; mejor una imagen cuadrada o PNG sin fondo</span>
+        ${imgField("s_logo", th.logo, "Link de la imagen o pulsa Subir")}</label>
       <label class="f" style="margin-top:12px">Oscurecer fondo: <span id="s_dimv">${th.bgDim ?? 80}%</span> <span class="hint">más alto = el texto se lee mejor</span>
         <input id="s_dim" type="range" min="0" max="95" step="5" value="${th.bgDim ?? 80}"></label>
       <div class="foot"><span class="status" id="sStatus"></span><button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit">Guardar</button></div></form>`, close => {
@@ -2689,7 +2953,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         const colors = {};
         COLOR_KEYS.forEach(([k]) => { if (!$("#cd_"+k).checked) colors[k] = $("#c_"+k).value; });
         const theme = { mode: $("#s_mode").value, colors, boxAlpha: Number($("#s_al").value),
-          bg: $("#s_bg").value.trim(), bgDim: Number($("#s_dim").value),
+          bg: $("#s_bg").value.trim(), bgDim: Number($("#s_dim").value), logo: $("#s_logo").value.trim(),
           fontTitle: $("#s_ft").value === "Chakra Petch" ? "" : $("#s_ft").value,
           fontBody: $("#s_fb").value === "Nunito Sans" ? "" : $("#s_fb").value };
         const m = Math.max(1, Number($("#s_main").value)||75);
@@ -2742,6 +3006,11 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   $("#clEdit").onclick = openChangelogEditor;
   $("#modEdit").onclick = openModsEditor;
   $("#editBadges").onclick = openBadgesEditor;
+  $("#editPacks").onclick = openPacksEditor;
+  $("#editCopyTypes").onclick = openCopyTypesEditor;
+  const goHome = () => { tab = "main"; openDemon = openPlayer = openUp = openRun = null; query = ""; tagFilter.clear(); render(); window.scrollTo({top:0, behavior:"smooth"}); };
+  $("#brand").addEventListener("click", goHome);
+  $("#brand").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); goHome(); } });
   $("#openBlocked").onclick = openBlockedNames;
   $("#acct").addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b) return;
@@ -2752,8 +3021,8 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
 
   // ---------- botón "atrás" del navegador ----------
   // Cada vista tiene su dirección (#/leaderboard, #/nivel/…), así el navegador puede volver atrás.
-  const TAB_SLUG = {main:"principal", ext:"extendida", leg:"legacy", up:"futuros", runs:"hardest-runs", stats:"leaderboard", roul:"ruleta", send:"subir-record", pend:"pendientes"};
-  const SLUG_TAB = Object.fromEntries(Object.entries(TAB_SLUG).map(([k,v]) => [v,k]));
+  const TAB_SLUG = {main:"lista", up:"futuros", runs:"hardest-runs", packs:"packs", stats:"leaderboard", roul:"ruleta", send:"subir-record", pend:"pendientes"};
+  const SLUG_TAB = {...Object.fromEntries(Object.entries(TAB_SLUG).map(([k,v]) => [v,k])), principal:"main", extendida:"main", legacy:"main"};
   let restoring = false;
   function viewHash(){
     const enc = encodeURIComponent;
@@ -2781,7 +3050,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     else if (kind === "run" && id) { openRun = id; tab = "runs"; }
     else if (SLUG_TAB[kind]) tab = SLUG_TAB[kind];
     else tab = "main";
-    if (openDemon){ const i = state.demons.findIndex(d => d.id === openDemon); if (i >= 0) tab = section(i+1); }
+    if (openDemon) tab = "main";
     query = "";
   }
   window.addEventListener("popstate", () => {
