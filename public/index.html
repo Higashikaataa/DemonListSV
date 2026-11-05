@@ -332,6 +332,11 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
 .stage.has-art{padding:14px;border:1px solid var(--line);overflow:hidden;background:var(--surface)}
 .stage.has-art::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--art) center/cover no-repeat;opacity:var(--artop)}
 .stage.has-art .detail-hero,.stage.has-art .panel,.stage.has-art .tablebox,.stage.has-art .empty{background:color-mix(in srgb, var(--surface) 62%, transparent);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.stage.has-art::before{background-position:center 30%}
+.lvpage .panel,.lvpage .tablebox,.lvpage .empty{background:var(--levelbox,var(--surface))}
+.pack.has-bg{position:relative;isolation:isolate;overflow:hidden}
+.pack.has-bg::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,color-mix(in srgb,var(--surface) 35%,transparent),color-mix(in srgb,var(--surface) 80%,transparent) 70%),var(--pbg) center top/cover no-repeat}
+.pack.has-bg h3,.pack.has-bg .pmeta,.pack.has-bg .psub,.pack.has-bg>p{text-shadow:0 1px 4px rgba(0,0,0,.6)}
 .inline-form input{width:110px;background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:8px 10px}
 </style>
 </head>
@@ -580,7 +585,8 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     ["surface2","--surface-2","Cuadros internos (botones, campos, tablas)"],
     ["line","--line","Bordes de los cuadros"],
     ["headertext","--headertext","Letras de la barra de arriba"],
-    ["pname","--pname","Nombres de jugadores (por defecto)"]
+    ["pname","--pname","Nombres de jugadores (por defecto)"],
+    ["levelbox","--levelbox","Cuadros de cada nivel (copias, enjoyment, récords)"]
   ];
   function themeColors(t){
     const c = {...(t.colors||{})};
@@ -608,7 +614,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     const alpha = Math.max(30, Math.min(100, Number(t.boxAlpha ?? 100)));
     if (alpha < 100){
       const cs = getComputedStyle(root);
-      ["--surface","--surface-2","--header"].forEach(v => {
+      ["--surface","--surface-2","--header","--levelbox"].forEach(v => {
         const base = cs.getPropertyValue(v).trim();
         if (base) root.style.setProperty(v, `color-mix(in srgb, ${base} ${alpha}%, transparent)`);
       });
@@ -862,6 +868,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       </div>
     </div>
     ${d.notes ? `<div class="panel" style="margin-top:16px"><h3>Notas</h3><p>${esc(d.notes)}</p></div>` : ""}
+    </div><div class="lvpage">
     <div class="panel" id="copies" style="margin-top:16px">${copiesHTML(d)}</div>
     <div class="panel" id="opinions" style="margin-top:16px">${opinionsHTML(d)}</div>
     <div class="section-head" style="margin-top:22px;margin-bottom:0"><h2>Récords</h2><span class="count">${recs.length} ${recs.length===1?"récord":"récords"}${progOk?` · list%: ${req}%`:basePoints(pos)?" · solo cuenta el 100%":""}</span></div>`;
@@ -1349,6 +1356,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       </div>
     </div>
     ${d.notes ? `<div class="panel" style="margin-top:16px"><h3>Notas</h3><p>${esc(d.notes)}</p></div>` : ""}
+    </div><div class="lvpage">
     <div class="section-head" style="margin-top:22px;margin-bottom:0"><h2>Runs</h2><span class="count">${recs.length} ${recs.length===1?"run":"runs"}</span></div>`;
     if (!recs.length) return html + `<div class="empty" style="margin-top:12px"><strong>Sin runs aún</strong>${editing ? "Pulsa “Editar nivel” para añadir runs." : "Sube tu run en la pestaña “Subir récord”."}</div></div>`;
     html += `<div class="tablebox"><table><thead><tr><th>Jugador</th><th>Run</th><th>Video</th></tr></thead><tbody>`;
@@ -2491,7 +2499,8 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     html += `<div class="packs">${packs.map(p => {
       const lv = packLevels(p), t = tierOf(p.tier), pc = packColor(p), done = mine ? lv.filter(x => mine.has(x.d.id)).length : 0;
       const victors = packVictors(p), full = mine && lv.length && done === lv.length;
-      return `<section class="pack" id="pack-${esc(p.id)}" style="--pc:${esc(pc)}">
+      const top = lv.slice().sort((a, b) => a.pos - b.pos)[0], bg = top ? (top.d.art || profileImg(top.d)) : "";
+      return `<section class="pack${bg ? " has-bg" : ""}" id="pack-${esc(p.id)}" style="--pc:${esc(pc)}${bg ? `;--pbg:url('${cssUrl(bg)}')` : ""}">
         <h3>${esc(p.name)}${full ? `<span class="pdone" title="Completaste este pack">✓</span>` : ""}</h3>
         <div class="pmeta">${t ? `<span class="tierpill" style="--tc:${esc(t.color)};color:${inkFor(t.color)}">${esc(t.name)}</span>` : ""}<span>${lv.length} ${lv.length === 1 ? "nivel" : "niveles"}</span>
           ${mine ? `<span class="pprog">${done}/${lv.length} completados</span>` : ""}</div>
@@ -2923,7 +2932,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       </div>
       <p class="hint" style="margin:12px 0 6px">Colores. Marca “Por defecto” para dejar el color original de ese elemento.</p>
       <div class="colors">${COLOR_KEYS.map(([k,v,label]) => {
-        const val = tc[k], cur = val || (getComputedStyle(document.documentElement).getPropertyValue(v).trim().match(/^#[0-9a-f]{6}$/i) || ["#888888"])[0];
+        const val = tc[k], cur = val || (getComputedStyle(document.documentElement).getPropertyValue(v === "--levelbox" ? "--surface" : v).trim().match(/^#[0-9a-f]{6}$/i) || ["#888888"])[0];
         return `<div class="crow"><input type="color" id="c_${k}" value="${esc(cur)}" aria-label="${esc(label)}"><span class="cl">${esc(label)}</span>
           <label><input type="checkbox" id="cd_${k}" ${val?"":"checked"}> Por defecto</label></div>`;
       }).join("")}</div>
