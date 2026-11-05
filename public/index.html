@@ -100,6 +100,7 @@ main.wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;paddin
 .pk-edit{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
 .lvpick{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px;background:var(--surface-2);display:flex;flex-direction:column;gap:2px}
 .lvpick label{display:flex;gap:8px;align-items:center;font-size:.88rem;padding:3px 6px;border-radius:6px;cursor:pointer}
+.lvpick label[hidden]{display:none}
 .lvpick label:hover{background:var(--surface)}
 .ppacks{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
 .ppack{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);border-left:4px solid var(--pc);background:var(--surface-2);cursor:pointer;text-align:left}
@@ -2499,7 +2500,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     html += `<div class="packs">${packs.map(p => {
       const lv = packLevels(p), t = tierOf(p.tier), pc = packColor(p), done = mine ? lv.filter(x => mine.has(x.d.id)).length : 0;
       const victors = packVictors(p), full = mine && lv.length && done === lv.length;
-      const top = lv.slice().sort((a, b) => a.pos - b.pos)[0], bg = top ? (top.d.art || profileImg(top.d)) : "";
+      const top = lv.slice().sort((a, b) => a.pos - b.pos)[0], bg = p.bg || (top ? (top.d.art || profileImg(top.d)) : "");
       return `<section class="pack${bg ? " has-bg" : ""}" id="pack-${esc(p.id)}" style="--pc:${esc(pc)}${bg ? `;--pbg:url('${cssUrl(bg)}')` : ""}">
         <h3>${esc(p.name)}${full ? `<span class="pdone" title="Completaste este pack">✓</span>` : ""}</h3>
         <div class="pmeta">${t ? `<span class="tierpill" style="--tc:${esc(t.color)};color:${inkFor(t.color)}">${esc(t.name)}</span>` : ""}<span>${lv.length} ${lv.length === 1 ? "nivel" : "niveles"}</span>
@@ -2571,16 +2572,20 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
           <label class="hint" style="display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox" id="pk_colorTier" ${p.color ? "" : "checked"}> Usar el color del tier</label></span></label>
         <label class="f">Descripción <span class="hint">opcional</span><input id="pk_desc" maxlength="200" value="${esc(p.desc||"")}"></label>
       </div>
+      <label class="f" style="margin-top:12px">Imagen de fondo <span class="hint">vacío = la imagen del nivel más difícil del pack</span>
+        ${imgField("pk_bg", p.bg || "", "Link de la imagen o pulsa Subir")}</label>
       <label class="f" style="margin-top:12px">Niveles <span class="hint"><span id="pk_count">${sel.size}</span> elegidos</span>
         <input id="pk_q" type="search" placeholder="Buscar nivel">
       </label>
-      <div class="lvpick" id="pk_levels" style="margin-top:6px">${state.demons.map((d,i) => `<label data-name="${esc(d.name.toLowerCase())}"><input type="checkbox" value="${esc(d.id)}" ${sel.has(d.id) ? "checked" : ""}> #${i+1} · ${esc(d.name)}</label>`).join("")}</div>
+      <div class="lvpick" id="pk_levels" style="margin-top:6px">${state.demons.map((d,i) => `<label data-name="${esc(d.name.toLowerCase())}" data-pos="${i+1}"><input type="checkbox" value="${esc(d.id)}" ${sel.has(d.id) ? "checked" : ""}> #${i+1} · ${esc(d.name)}</label>`).join("")}</div>
       <div class="foot"><span class="status" id="pkStatus"></span>
         ${isNew ? "" : `<button type="button" class="btn danger" id="pkDel">Eliminar</button>`}
         <button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit">${isNew ? "Crear pack" : "Guardar"}</button></div></form>`, close => {
       $("#cancel").onclick = () => { close(); openPacksEditor(); };
       $("#pk_color").addEventListener("input", () => $("#pk_colorTier").checked = false);
-      $("#pk_q").addEventListener("input", e => { const q = e.target.value.trim().toLowerCase(); document.querySelectorAll("#pk_levels label").forEach(l => l.hidden = q && !l.dataset.name.includes(q)); });
+      $("#pk_q").addEventListener("input", e => { const q = e.target.value.trim().toLowerCase().replace(/^#/, ""); document.querySelectorAll("#pk_levels label").forEach(l => l.hidden = !!q && !l.dataset.name.includes(q) && l.dataset.pos !== q); });
+      $("#pk_q").addEventListener("keydown", e => { if (e.key === "Enter") e.preventDefault(); });
+      bindUploads($("#pkStatus"));
       $("#pk_levels").addEventListener("change", () => $("#pk_count").textContent = document.querySelectorAll("#pk_levels input:checked").length);
       const del = $("#pkDel");
       if (del) del.onclick = () => {
@@ -2590,7 +2595,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       $("#pkf").addEventListener("submit", e => {
         e.preventDefault();
         const np = {...p, name: $("#pk_name").value.trim(), tier: $("#pk_tier").value, color: $("#pk_colorTier").checked ? "" : $("#pk_color").value,
-          desc: $("#pk_desc").value.trim(), levels: [...document.querySelectorAll("#pk_levels input:checked")].map(c => c.value)};
+          desc: $("#pk_desc").value.trim(), bg: $("#pk_bg").value.trim(), levels: [...document.querySelectorAll("#pk_levels input:checked")].map(c => c.value)};
         if (!np.name){ $("#pkStatus").textContent = "Escribe el nombre del pack."; return; }
         if (!np.levels.length){ $("#pkStatus").textContent = "Elige al menos un nivel."; return; }
         const packs = isNew ? [...(state.packs||[]), np] : (state.packs||[]).map(x => x.id === p.id ? np : x);
