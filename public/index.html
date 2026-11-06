@@ -338,6 +338,46 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
 .pack.has-bg{position:relative;isolation:isolate;overflow:hidden}
 .pack.has-bg::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,color-mix(in srgb,var(--surface) 35%,transparent),color-mix(in srgb,var(--surface) 80%,transparent) 70%),var(--pbg) center top/cover no-repeat}
 .pack.has-bg h3,.pack.has-bg .pmeta,.pack.has-bg .psub,.pack.has-bg>p{text-shadow:0 1px 4px rgba(0,0,0,.6)}
+.home{display:flex;flex-direction:column;gap:22px}
+body.is-home main.wrap{grid-template-columns:minmax(0,1fr)}
+body.is-home aside{display:none}
+.hhero{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--surface)}
+.hbanner{position:relative;overflow:hidden;background:var(--surface-2)}
+.hbanner .himg,.hcard .hcimg{position:absolute;inset:-24px;background-size:cover;background-position:center;background-repeat:no-repeat}
+.hbanner .hdim{position:absolute;inset:0;background:#000}
+.hbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 22px}
+.hbar .htxt{flex:1 1 300px;min-width:0}
+.hbar h2{font-family:var(--display);font-size:1.6rem;margin:0;color:var(--title);text-transform:uppercase;letter-spacing:.02em;overflow-wrap:anywhere}
+.hbar p{margin:6px 0 0;color:var(--muted);font-size:.92rem;max-width:520px;white-space:pre-line}
+.hbtns{display:flex;gap:8px;flex-wrap:wrap}
+.home a.btn{text-decoration:none}
+.heyebrow{font-family:var(--display);font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--hc,var(--accent))}
+.hsec{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.hsec>div{flex:1 1 260px;min-width:0}
+.hsec h2{font-family:var(--display);font-size:1.7rem;margin:4px 0 2px;color:var(--title)}
+.hsec p{margin:0;color:var(--muted);font-size:.9rem}
+.hsec .hcount{font-size:.75rem;color:var(--muted);letter-spacing:.08em}
+.hcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:16px}
+.hcard{position:relative;isolation:isolate;overflow:hidden;display:flex;flex-direction:column;gap:6px;min-height:190px;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--fg);text-decoration:none;transition:border-color .15s,transform .15s}
+.hcard:hover{border-color:var(--hc);transform:translateY(-2px)}
+.hcard .hcimg{z-index:-2}
+.hcard .hcdim{position:absolute;inset:0;z-index:-1}
+.hctop{display:flex;align-items:center;justify-content:space-between;margin-bottom:auto;padding-bottom:18px}
+.hcicon{display:inline-grid;place-items:center;min-width:30px;height:30px;padding:0 6px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--hc);font-size:.95rem}
+.hcnum{font-size:.72rem;color:var(--muted)}
+.hcard h3{font-family:var(--display);font-size:1.35rem;margin:0;color:var(--title)}
+.hcard p{margin:0;color:var(--muted);font-size:.9rem;white-space:pre-line}
+.hclink{margin-top:8px;font-weight:700;font-size:.88rem;color:var(--hc)}
+.hfoot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:18px 22px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.hfoot>div{flex:1 1 260px;min-width:0}
+.hfoot b{display:block;margin-top:6px;font-family:var(--display);font-size:1.1rem;color:var(--title)}
+.hc-edit{border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:10px;background:var(--surface-2)}
+.hc-edit .hc-head{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+.phero.has-lvbg{isolation:isolate}
+.phero.has-lvbg::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(90deg,color-mix(in srgb,var(--surface) 50%,transparent),color-mix(in srgb,var(--surface) 25%,transparent)),var(--lvbg) center/cover no-repeat}
+.phero.has-lvbg .pbody{text-shadow:0 1px 4px rgba(0,0,0,.55)}
+.bgfx{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:0;transition:opacity .7s ease;background-size:cover;background-position:center}
+.bgfx.on{opacity:1}
 .inline-form input{width:110px;background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:8px 10px}
 </style>
 </head>
@@ -350,6 +390,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       <p id="siteTag">Cargando lista…</p></div>
     </div>
     <nav class="tabs" role="tablist" id="tabs">
+      <button class="tab" role="tab" data-tab="home" aria-selected="false" id="homeTab">Inicio</button>
       <button class="tab" role="tab" data-tab="main" aria-selected="true">Lista</button>
       <button class="tab" role="tab" data-tab="up" aria-selected="false">Futuros niveles</button>
       <button class="tab" role="tab" data-tab="runs" aria-selected="false">Hardest runs</button>
@@ -370,7 +411,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   </section>
   <aside>
     <div class="panel">
-      <h3>Acerca de la lista</h3>
+      <h3 id="aboutTitle">Acerca de la lista</h3>
       <p id="aboutText"></p>
     </div>
     <div class="panel">
@@ -402,6 +443,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
             <button class="btn" id="editSite">Editar sitio</button>
           </div>
           <div class="btn-row"><button class="btn" id="editBadges">Badges</button><button class="btn" id="editPacks">Packs</button><button class="btn" id="editCopyTypes">Tipos de copia</button><button class="btn" id="openBlocked">Nombres bloqueados</button></div>
+          <div class="btn-row"><button class="btn" id="editHome">Página de inicio</button><button class="btn" id="editAbout">“Acerca de” por pestaña</button></div>
           <button class="btn" id="openJson">Importar / exportar JSON</button>
           <button class="btn" id="logoutBtn">Salir del modo editor</button>
         </div>
@@ -411,6 +453,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   </aside>
 </main>
 
+<div class="bgfx" id="bgfxA" aria-hidden="true"></div><div class="bgfx" id="bgfxB" aria-hidden="true"></div>
 <div id="modalRoot"></div>
 <div id="tip" role="tooltip" hidden></div>
 
@@ -489,7 +532,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     // Progresos en futuros niveles (no dan puntos)
     (state.upcoming||[]).forEach((u,i) => {
       const name = (u.player||"").trim(); if (!name) return;
-      get(name).entries.push({d:u, pos:null, upPos:i+1, progress:clampPct(u.progress), pts:0, verified:false, upcoming:true, video:u.video});
+      get(name).entries.push({d:u, pos:null, upPos:i+1, progress:upRuns(u) ? 0 : clampPct(u.progress), pts:0, verified:false, upcoming:true, video:u.video});
     });
     // Hardest runs (no dan puntos): el mejor run de cada jugador en cada nivel
     (state.runs||[]).forEach((d,i) => {
@@ -636,7 +679,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   function playerInfo(name){
     const k = pkey(name), base = (state.players||{})[k] || {}, own = (state.profiles||{})[k] || {};
     const out = {...base};
-    for (const f of ["avatar","youtube","nameColor","banner","bio","dept"]) if (own[f]) out[f] = own[f];
+    for (const f of ["avatar","youtube","nameColor","banner","bio","dept","bgLevel"]) if (own[f]) out[f] = own[f];
     return out;
   }
   const nameStyle = name => { const c = playerInfo(name).nameColor; return /^#[0-9a-f]{6}$/i.test(c||"") ? ` style="color:${c}"` : ""; };
@@ -708,7 +751,12 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     $("#siteTitle").textContent = state.title || "Demonlist";
     { const lg = (state.theme||{}).logo, im = $("#siteLogo"); if (lg){ if (im.getAttribute("src") !== lg) im.src = lg; im.hidden = false; } else { im.hidden = true; im.removeAttribute("src"); } }
     $("#siteTag").textContent = state.tagline || "";
-    $("#aboutText").textContent = state.about || "Ranking de demons ordenados por dificultad.";
+    if (tab === "home" && !homeOn()) tab = "main";
+    { const k = openDemon ? "main" : openPlayer ? "stats" : tab, a = (state.aboutTabs||{})[k] || {};
+      $("#aboutTitle").textContent = a.title || "Acerca de la lista";
+      $("#aboutText").textContent = a.text || state.about || "Ranking de demons ordenados por dificultad."; }
+    $("#homeTab").hidden = !homeOn();
+    document.body.classList.toggle("is-home", loaded && tab === "home" && !openDemon && !openPlayer && !openUp && !openRun && !editing);
     $("#legend").innerHTML = `<b>1–${state.mainSize}</b><span>Lista principal</span><b>${state.mainSize+1}–${state.extSize}</b><span>Lista extendida</span><b>${state.extSize+1}+</b><span>Legacy (sin puntos)</span>`;
     $("#topLinks").innerHTML =
       (state.discordUrl ? `<a class="btn" href="${esc(state.discordUrl)}" target="_blank" rel="noopener">Discord</a>` : "") +
@@ -727,11 +775,13 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     $("#editorTools").hidden = !editing;
     if (!loaded) return;
     syncHash();
+    queueMicrotask(scrollBg);
     const v = $("#view");
     if (openDemon){ v.innerHTML = detailHTML(); bindDetail(); bindPlayerLinks(); bindOpinions(); bindCopies(); return; }
     if (openPlayer){ v.innerHTML = profileHTML(); bindProfile(); return; }
     if (openUp){ v.innerHTML = upDetailHTML(); bindUpDetail(); return; }
     if (openRun){ v.innerHTML = runDetailHTML(); bindRunDetail(); bindPlayerLinks(); return; }
+    if (tab === "home"){ v.innerHTML = homeHTML(); bindHome(); return; }
     if (tab === "runs"){ v.innerHTML = runsListHTML(); bindRunsList(); return; }
     if (tab === "packs"){ v.innerHTML = packsHTML(); bindPacks(); return; }
     if (tab === "up"){ v.innerHTML = upListHTML(); bindUpList(); return; }
@@ -934,7 +984,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       const bg = src ? ` style="--img:url('${cssUrl(src)}')"` : "";
       const attr = e.run ? `data-ropen="${e.d.id}"` : e.upcoming ? `data-upopen="${e.d.id}"` : `data-demon="${e.d.id}"`;
       const label = e.upcoming ? "Futuro" : "#"+e.pos;
-      const right = e.run ? `${e.from}–${e.progress}%` : e.upcoming ? `${e.progress}%` : (withPct ? `${e.progress}% · ` : "") + `+${fmt(e.pts)}`;
+      const right = e.run ? `${e.from}–${e.progress}%` : e.upcoming ? upProgText(e.d) : (withPct ? `${e.progress}% · ` : "") + `+${fmt(e.pts)}`;
       return `<button class="lvrow" ${attr}><span class="lvimg${src?" has":""}"${bg}></span><span class="lvpos">${label}</span><span class="lvname">${esc(e.d.name)}</span><span class="lvpts">${right}</span></button>`;
     };
     const chips = (list, withPct) => list.length
@@ -951,7 +1001,8 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     };
     const info = playerInfo(p.name), ytUrl = ytChannelUrl(info.youtube);
     const isMe = me && me.k === pkey(p.name);
-    html += `<div class="detail-hero phero${info.banner ? " has-banner" : ""}" style="grid-template-columns:${info.banner ? "" : "minmax(0,1fr)"}">
+    const bgd = info.bgLevel ? state.demons.find(x => x.id === info.bgLevel) : null, bgsrc = bgd ? (bgd.art || thumbSrc(bgd)) : "";
+    html += `<div class="detail-hero phero${info.banner ? " has-banner" : ""}${bgsrc ? " has-lvbg" : ""}" style="grid-template-columns:${info.banner ? "" : "minmax(0,1fr)"}${bgsrc ? `;--lvbg:url('${cssUrl(bgsrc)}')` : ""}">
       <div class="pbody" style="min-width:0">
        <div class="phead">
         ${avHTML(p.name, playerAvatar(p.name), 96)}
@@ -1137,6 +1188,9 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
 
   // ---------- futuros niveles ----------
   const clampPct = v => Math.max(0, Math.min(100, Math.round(Number(v)||0)));
+  // Progreso de un futuro nivel: porcentaje o "en X runs"
+  const upRuns = u => u && u.pmode === "runs" ? Math.max(0, Math.round(Number(u.runs) || 0)) : 0;
+  const upProgText = u => upRuns(u) ? `${upRuns(u)} runs` : `${clampPct(u.progress)}%`;
   function upListHTML(){
     const all = (state.upcoming||[]).map((d,i) => ({d, pos:i+1}));
     const q = query.trim().toLowerCase();
@@ -1154,13 +1208,13 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
           <button class="ibtn" data-uact="edit" data-id="${d.id}">Editar</button>
           <button class="ibtn" data-uact="promote" data-id="${d.id}" title="Pasar a la lista">→ Lista</button>
           <button class="ibtn" data-uact="torun" data-id="${d.id}" title="Pasar a Hardest runs">→ Runs</button></div>`
-        : `<div class="pts pct">${pct}%<small>progreso</small></div>`;
+        : upRuns(d) ? `<div class="pts pct">${upRuns(d)}<small>runs</small></div>` : `<div class="pts pct">${pct}%<small>progreso</small></div>`;
       html += `<div class="row${d.art ? " has-art" : ""}"${rowArt(d)} role="button" tabindex="0" data-uopen="${d.id}">
         <div class="thumbcol">${thumbHTML(d,pos)}${tagsHTML(d, true)}</div>
         <div class="row-main">
           <div class="row-title"><span class="name">${esc(d.name)}</span></div>
           <div class="meta">${d.player ? "progreso de "+esc(d.player)+" · " : ""}publicado por ${esc(d.publisher || d.creator || "—")}</div>
-          <div style="margin-top:6px"><span class="bar" style="margin-left:0;width:140px;max-width:100%"><i style="width:${pct}%"></i></span></div>
+          ${upRuns(d) ? `<div class="meta" style="margin-top:4px">completado en ${upRuns(d)} runs</div>` : `<div style="margin-top:6px"><span class="bar" style="margin-left:0;width:140px;max-width:100%"><i style="width:${pct}%"></i></span></div>`}
         </div>
         ${tools}
       </div>`;
@@ -1204,7 +1258,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
           <div class="fact"><span>Creador(es)</span><b>${esc(d.creator||"—")}</b></div>
           <div class="fact"><span>ID del nivel</span><b>${esc(d.levelId||"—")}</b></div>
           <div class="fact"><span>Jugador</span><b>${esc(d.player||"—")}</b></div>
-          <div class="fact"><span>Progreso</span><b>${pct}%</b> <span class="bar"><i class="${pct>=100?"full":""}" style="width:${pct}%"></i></span></div>
+          <div class="fact"><span>Progreso</span>${upRuns(d) ? `<b>En ${upRuns(d)} runs</b>` : `<b>${pct}%</b> <span class="bar"><i class="${pct>=100?"full":""}" style="width:${pct}%"></i></span>`}</div>
         </div>
         <div class="btn-row" style="margin-top:14px">
           ${video ? `<a class="btn" href="${esc(video)}" target="_blank" rel="noopener">Ver progreso ↗</a>` : ""}
@@ -1235,7 +1289,9 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         <label class="f">Publicador<input id="u_pub" value="${esc(d.publisher)}"></label>
         <label class="f">Creador(es)<input id="u_cre" value="${esc(d.creator)}"></label>
         <label class="f">Jugador que lo está jugando<input id="u_pl" value="${esc(d.player)}"></label>
-        <label class="f">Progreso (%)<input id="u_pr" type="number" min="0" max="100" value="${clampPct(d.progress)}"></label>
+        <label class="f">Tipo de progreso<select id="u_mode"><option value="pct" ${upRuns(d) ? "" : "selected"}>Porcentaje (ej. 87%)</option><option value="runs" ${upRuns(d) ? "selected" : ""}>En runs (ej. en 4 runs)</option></select></label>
+        <label class="f" id="u_prw" ${upRuns(d) ? "hidden" : ""}>Progreso (%)<input id="u_pr" type="number" min="0" max="100" value="${clampPct(d.progress)}"></label>
+        <label class="f" id="u_runsw" ${upRuns(d) ? "" : "hidden"}>Número de runs<input id="u_runs" type="number" min="2" max="99" value="${upRuns(d) || 2}"></label>
         <label class="f">ID del nivel<input id="u_lid" value="${esc(d.levelId)}"></label>
         <label class="f">Video del progreso<input id="u_vid" placeholder="Link de YouTube" value="${esc(d.video)}"></label>
       </div>
@@ -1253,6 +1309,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       </div></form>`, close => {
       $("#cancel").onclick = close;
       bindUploads($("#uStatus")); bindArt("u"); bindFillSelect("u", "u", $("#uStatus"));
+      $("#u_mode").addEventListener("change", e => { const r = e.target.value === "runs"; $("#u_prw").hidden = r; $("#u_runsw").hidden = !r; });
       const del = $("#uDel");
       if (del) del.onclick = () => {
         if (del.dataset.confirm){ if (openUp===d.id) openUp=null; save({...state, upcoming:list.filter(x=>x.id!==d.id)}); close(); }
@@ -1262,6 +1319,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         e.preventDefault();
         const nd = {...d, name:$("#u_name").value.trim(), publisher:$("#u_pub").value.trim(), creator:$("#u_cre").value.trim(),
           player:$("#u_pl").value.trim(), progress:clampPct($("#u_pr").value), levelId:$("#u_lid").value.trim(),
+          pmode: $("#u_mode").value === "runs" ? "runs" : "", runs: $("#u_mode").value === "runs" ? Math.max(1, Math.min(99, Math.round(Number($("#u_runs").value) || 2))) : 0,
           video:$("#u_vid").value.trim(), thumb:$("#u_thumb").value.trim(), notes:$("#u_notes").value.trim(), ...readArt("u"), tags: readTags("u")};
         if (!nd.name){ $("#uStatus").textContent = "Escribe el nombre del nivel."; return; }
         const arr = list.filter(x=>x.id!==d.id);
@@ -1917,6 +1975,8 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         ${imgField("mp_av", own.avatar, "Link de la imagen o pulsa Subir")}</label>
       <label class="f" style="margin-top:12px">Imagen de portada <span class="hint">sale a la derecha de tu perfil, ocupando un tercio</span>
         ${imgField("mp_ban", own.banner, "Link de la imagen o pulsa Subir")}</label>
+      <label class="f" style="margin-top:12px">Fondo del perfil <span class="hint">la imagen de un nivel de la lista llena el espacio libre de tu perfil</span>
+        <select id="mp_bgl"><option value="">Sin fondo</option>${state.demons.map((d,i) => `<option value="${esc(d.id)}" ${own.bgLevel === d.id ? "selected" : ""}>#${i+1} · ${esc(d.name)}</option>`).join("")}</select></label>
       <label class="f" style="margin-top:12px">Descripción <span class="hint"><span id="mp_bioc">${(own.bio||"").length}</span>/400</span>
         <textarea id="mp_bio" rows="3" maxlength="400" placeholder="Cuéntale algo a la gente: tu nivel favorito, tu canal, desde cuándo juegas…">${esc(own.bio||"")}</textarea></label>
       ${own.dept ? `<label class="f" style="margin-top:12px">Departamento <span class="hint">es definitivo; si te equivocaste, pide a un moderador que lo libere</span>
@@ -1962,7 +2022,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
           return;
         }
         const profile = { nameColor: $("#mp_colDef").checked ? "" : $("#mp_col").value, youtube: $("#mp_yt").value.trim(),
-          avatar: $("#mp_av").value.trim(), banner: $("#mp_ban").value.trim(), bio: $("#mp_bio").value, dept: own.dept || $("#mp_dept").value };
+          avatar: $("#mp_av").value.trim(), banner: $("#mp_ban").value.trim(), bio: $("#mp_bio").value, dept: own.dept || $("#mp_dept").value, bgLevel: $("#mp_bgl").value };
         $("#mpStatus").textContent = "Guardando…";
         try {
           const d = await api("/api/cuenta", {action:"profile", profile});
@@ -2151,6 +2211,18 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
           <button class="btn danger" data-reject="${esc(x.id)}">Rechazar</button></div></div>`;
     }).join("")}</div>`;
   }
+  // Aviso en Discord (webhook guardado como secreto DISCORD_WEBHOOK en Cloudflare)
+  function notifyDiscord(x){
+    if (state.discordNotify === false || x.kind === "copy") return;
+    const md = v => String(v || "").replace(/([*_~`|>\\])/g, "\\$1");
+    const pos = state.demons.findIndex(d => d.id === x.levelId) + 1;
+    let text;
+    if (x.kind === "run") text = `🔥 **${md(x.player)}** hizo un run de ${x.from||0}–${x.progress}% en **${md(x.levelName)}** (Hardest runs)`;
+    else if (x.kind === "up") text = `⏳ **${md(x.player)}** tiene ${x.progress}% en **${md(x.levelName)}** (Futuros niveles)`;
+    else if (x.progress >= 100) text = `🏆 **${md(x.player)}** completó **${md(x.levelName)}**${pos ? ` (#${pos})` : ""}`;
+    else text = `📈 **${md(x.player)}** consiguió ${x.progress}% en **${md(x.levelName)}**${pos ? ` (#${pos})` : ""}`;
+    fetch("/api/discord", {method:"POST", headers:{"content-type":"application/json","x-admin-password":password}, body: JSON.stringify({text, video: x.video || ""})}).catch(() => {});
+  }
   async function dropSub(id){
     const r = await fetch("/api/envios?id=" + encodeURIComponent(id), {method:"DELETE", headers:{"x-admin-password": password}});
     if (!r.ok) throw new Error("No se pudo quitar de pendientes.");
@@ -2195,7 +2267,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
           next = {...state, upcoming: [...(state.upcoming||[]), nu]};
         } else {
           const id = t.u.id;
-          next = {...state, upcoming: state.upcoming.map(u => u.id === id ? {...u, player:x.player, progress:x.progress, video:x.video} : u)};
+          next = {...state, upcoming: state.upcoming.map(u => u.id === id ? {...u, player:x.player, progress:x.progress, video:x.video, pmode:"", runs:0} : u)};
         }
       } else {
         next = {...state, demons: state.demons.map(d => {
@@ -2209,6 +2281,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       const ok = await save(next);
       if (!ok){ b.disabled = false; return; }
       try { await dropSub(x.id); setStatus(`Récord de ${x.player} aceptado.`, "ok"); } catch (e) { setStatus(e.message, "err"); }
+      notifyDiscord(x);
       render();
     });
   }
@@ -2917,7 +2990,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     modal(`<h3>Editar sitio</h3><form id="sf">
       <label class="f">Título<input id="s_title" value="${esc(state.title)}"></label>
       <label class="f" style="margin-top:12px">Subtítulo<input id="s_tag" value="${esc(state.tagline)}"></label>
-      <label class="f" style="margin-top:12px">Texto “Acerca de”<textarea id="s_about" rows="6">${esc(state.about)}</textarea><span class="hint">Cada salto de línea se respeta tal cual.</span></label>
+      <label class="f" style="margin-top:12px">Texto “Acerca de” general <span class="hint">sale en las pestañas que no tienen su propio texto (botón “Acerca de” por pestaña)</span><textarea id="s_about" rows="6">${esc(state.about)}</textarea><span class="hint">Cada salto de línea se respeta tal cual.</span></label>
       <div class="grid2" style="margin-top:12px">
         <label class="f">Link de Discord<input id="s_dc" value="${esc(state.discordUrl)}" placeholder="https://discord.gg/..."></label>
         <label class="f">Link para subir récords<input id="s_sub" value="${esc(state.submitUrl)}" placeholder="https://..."></label>
@@ -2952,6 +3025,10 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         ${imgField("s_bg", th.bg, "https://.../fondo.jpg o pulsa Subir")}</label>
       <label class="f" style="margin-top:12px">Logo <span class="hint">sale al lado del título; mejor una imagen cuadrada o PNG sin fondo</span>
         ${imgField("s_logo", th.logo, "Link de la imagen o pulsa Subir")}</label>
+      <label class="hint" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-weight:600"><input type="checkbox" id="s_scroll" ${th.scrollBg ? "checked" : ""}> Cambiar el fondo al bajar por la lista: al llegar al #${state.mainSize} sale la imagen de ese nivel y al llegar al #${state.extSize} la de ese otro</label>
+      <div class="sub">Discord</div>
+      <label class="hint" style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="s_dnot" ${state.discordNotify === false ? "" : "checked"}> Avisar en Discord cada récord que se acepta</label>
+      <div class="btn-row" style="margin-top:8px;align-items:center"><button type="button" class="btn" id="s_dtest">Enviar mensaje de prueba</button><span class="hint" id="s_dres">Necesita el webhook DISCORD_WEBHOOK en Cloudflare.</span></div>
       <label class="f" style="margin-top:12px">Oscurecer fondo: <span id="s_dimv">${th.bgDim ?? 80}%</span> <span class="hint">más alto = el texto se lee mejor</span>
         <input id="s_dim" type="range" min="0" max="95" step="5" value="${th.bgDim ?? 80}"></label>
       <div class="foot"><span class="status" id="sStatus"></span><button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit">Guardar</button></div></form>`, close => {
@@ -2960,6 +3037,14 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
       $("#s_al").addEventListener("input", e => $("#s_alv").textContent = e.target.value + "%");
       COLOR_KEYS.forEach(([k]) => $("#c_"+k).addEventListener("input", () => $("#cd_"+k).checked = false));
       $("#s_dim").addEventListener("input", e => $("#s_dimv").textContent = e.target.value + "%");
+      $("#s_dtest").onclick = async () => {
+        $("#s_dres").textContent = "Enviando…";
+        try {
+          const r = await fetch("/api/discord", {method:"POST", headers:{"content-type":"application/json","x-admin-password":password}, body: JSON.stringify({test:true})});
+          const d = await r.json().catch(() => ({}));
+          $("#s_dres").textContent = r.ok ? "Listo, revisa el canal de Discord." : (d.error || "No se pudo enviar (" + r.status + ").");
+        } catch { $("#s_dres").textContent = "No se pudo conectar."; }
+      };
       const prev = () => { loadFonts([$("#s_ft").value, $("#s_fb").value]); $("#s_fpt").style.fontFamily = fontStack($("#s_ft").value); $("#s_fpb").style.fontFamily = fontStack($("#s_fb").value); };
       $("#s_ft").addEventListener("change", prev); $("#s_fb").addEventListener("change", prev); prev();
       $("#sf").addEventListener("submit", e => {
@@ -2967,13 +3052,13 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
         const colors = {};
         COLOR_KEYS.forEach(([k]) => { if (!$("#cd_"+k).checked) colors[k] = $("#c_"+k).value; });
         const theme = { mode: $("#s_mode").value, colors, boxAlpha: Number($("#s_al").value),
-          bg: $("#s_bg").value.trim(), bgDim: Number($("#s_dim").value), logo: $("#s_logo").value.trim(),
+          bg: $("#s_bg").value.trim(), bgDim: Number($("#s_dim").value), logo: $("#s_logo").value.trim(), scrollBg: $("#s_scroll").checked,
           fontTitle: $("#s_ft").value === "Chakra Petch" ? "" : $("#s_ft").value,
           fontBody: $("#s_fb").value === "Nunito Sans" ? "" : $("#s_fb").value };
         const m = Math.max(1, Number($("#s_main").value)||75);
         const x = Math.max(m, Number($("#s_ext").value)||150);
         save({...state, title:$("#s_title").value.trim()||"Demonlist", tagline:$("#s_tag").value.trim(), about:$("#s_about").value.trim(),
-          discordUrl:$("#s_dc").value.trim(), submitUrl:$("#s_sub").value.trim(), mainSize:m, extSize:x, theme});
+          discordUrl:$("#s_dc").value.trim(), submitUrl:$("#s_sub").value.trim(), mainSize:m, extSize:x, theme, discordNotify: $("#s_dnot").checked});
         close();
       });
     });
@@ -3004,6 +3089,207 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     });
   }
 
+
+  // ---------- página de inicio ----------
+  const HOME_TARGETS = [["main","Lista"],["up","Futuros niveles"],["runs","Hardest runs"],["packs","Packs"],["stats","Leaderboard"],["roul","Ruleta"],["send","Subir récord"],["discord","Discord del sitio"],["url","Otro link…"],["none","Nada"]];
+  const homeOn = () => !state.home || state.home.enabled !== false;
+  const DEFAULT_CARDS = [
+    {id:"c1", eyebrow:"Ranking oficial", color:"#3b82f6", icon:"☰", title:"Lista principal", text:"Explora los demons de la lista, sus posiciones, verificadores y récords de los jugadores.", linkText:"Ver lista", target:"main"},
+    {id:"c2", eyebrow:"En progreso", color:"#eab308", icon:"⏳", title:"Futuros niveles", text:"Conoce los niveles que podrían entrar a la lista y sigue el avance de cada jugador.", linkText:"Ver futuros", target:"up"},
+    {id:"c3", eyebrow:"Runs destacados", color:"#ef4444", icon:"⚡", title:"Hardest runs", text:"Los runs más difíciles de la comunidad en niveles que todavía nadie ha completado.", linkText:"Ver runs", target:"runs"},
+    {id:"c4", eyebrow:"Colecciones", color:"#a855f7", icon:"▣", title:"Packs", text:"Completa grupos de niveles y aparece entre los victors de cada pack.", linkText:"Ver packs", target:"packs"}
+  ];
+  function homeCfg(){
+    const h = state.home || {};
+    return {
+      enabled: h.enabled !== false,
+      hero: {img:"", dim:30, blur:0, height:200, title: state.title || "Demonlist", accent:"", accentColor:"", text: state.tagline || "",
+        b1:{label:"Explorar lista", target:"main", url:""}, b2:{label:"Conocer la comunidad", target:"discord", url:""}, ...(h.hero||{})},
+      eyebrow: h.eyebrow ?? "Explora", title: h.title ?? "Listas de niveles", sub: h.sub ?? "Consulta los niveles clasificados o descubre los que están por llegar.",
+      cards: Array.isArray(h.cards) ? h.cards : DEFAULT_CARDS,
+      foot: {eyebrow:"Hecho por la comunidad", text:"Un espacio para los jugadores de GD de El Salvador.", label:"Visitar comunidad", target:"discord", url:"", ...(h.foot||{})}
+    };
+  }
+  // Destino de un botón o recuadro -> {href, go (pestaña) o ext (link externo)}
+  function homeLink(target, url){
+    if (target === "none") return null;
+    if (target === "discord") return state.discordUrl ? {href: state.discordUrl, ext: true} : null;
+    if (target === "url") return /^https?:\/\//i.test(url||"") ? {href: url, ext: true} : null;
+    if (TAB_SLUG[target]) return {href: "#/" + TAB_SLUG[target], go: target};
+    return null;
+  }
+  const linkAttrs = l => l.ext ? `href="${esc(l.href)}" target="_blank" rel="noopener"` : `href="${esc(l.href)}" data-go="${esc(l.go)}"`;
+  const pctNum = (v, def, max) => Math.max(0, Math.min(max, Number(v ?? def) || 0));
+  function homeHTML(){
+    const h = homeCfg(), hr = h.hero;
+    const btn = (b, primary) => { const l = b && b.label ? homeLink(b.target, b.url) : null; return l ? `<a class="btn${primary ? " primary" : ""}" ${linkAttrs(l)}>${esc(b.label)}${l.ext ? " ↗" : ""}</a>` : ""; };
+    const accentC = /^#[0-9a-f]{6}$/i.test(hr.accentColor||"") ? hr.accentColor : "var(--accent)";
+    let html = `<div class="home">
+      <section class="hhero">
+        ${hr.img ? `<div class="hbanner" style="height:${pctNum(hr.height,200,500)}px"><div class="himg" style="background-image:url('${cssUrl(hr.img)}');filter:blur(${pctNum(hr.blur,0,20)}px)"></div><div class="hdim" style="opacity:${pctNum(hr.dim,30,95)/100}"></div></div>` : ""}
+        <div class="hbar"><div class="htxt"><h2>${esc(hr.title)}${hr.accent ? ` <span style="color:${accentC}">${esc(hr.accent)}</span>` : ""}</h2>${hr.text ? `<p>${esc(hr.text)}</p>` : ""}</div>
+          <div class="hbtns">${btn(hr.b1, true)}${btn(hr.b2, false)}${editing ? `<button class="btn" id="homeEdit">Editar inicio</button>` : ""}</div></div>
+      </section>`;
+    if (h.cards.length){
+      const n = h.cards.length, two = i => String(i).padStart(2, "0");
+      html += `<div class="hsec"><div>${h.eyebrow ? `<div class="heyebrow">${esc(h.eyebrow)}</div>` : ""}${h.title ? `<h2>${esc(h.title)}</h2>` : ""}${h.sub ? `<p>${esc(h.sub)}</p>` : ""}</div><span class="hcount">01 / ${two(n)}</span></div>
+      <div class="hcards">${h.cards.map((c, i) => {
+        const l = homeLink(c.target, c.url), col = /^#[0-9a-f]{6}$/i.test(c.color||"") ? c.color : "#3b82f6", dim = pctNum(c.dim, 60, 95);
+        const tagOpen = l ? `<a class="hcard" ${linkAttrs(l)}` : `<div class="hcard"`, tagClose = l ? "</a>" : "</div>";
+        return `${tagOpen} style="--hc:${col}">
+          ${c.img ? `<div class="hcimg" style="background-image:url('${cssUrl(c.img)}');filter:blur(${pctNum(c.blur,0,20)}px)"></div><div class="hcdim" style="background:linear-gradient(90deg,color-mix(in srgb,var(--surface) ${Math.min(100, dim + 25)}%,transparent),color-mix(in srgb,var(--surface) ${dim}%,transparent))"></div>` : ""}
+          <div class="hctop">${c.icon ? `<span class="hcicon">${esc(c.icon)}</span>` : "<span></span>"}<span class="hcnum">${two(i+1)}</span></div>
+          ${c.eyebrow ? `<div class="heyebrow">${esc(c.eyebrow)}</div>` : ""}
+          <h3>${esc(c.title)}</h3>${c.text ? `<p>${esc(c.text)}</p>` : ""}
+          ${l && c.linkText ? `<span class="hclink">${esc(c.linkText)} →</span>` : ""}${tagClose}`;
+      }).join("")}</div>`;
+    }
+    const f = h.foot, fl = f.label ? homeLink(f.target, f.url) : null;
+    if (f.text || f.eyebrow) html += `<section class="hfoot"><div>${f.eyebrow ? `<div class="heyebrow">${esc(f.eyebrow)}</div>` : ""}${f.text ? `<b>${esc(f.text)}</b>` : ""}</div>${fl ? `<a class="btn" ${linkAttrs(fl)}>${esc(f.label)}${fl.ext ? " ↗" : ""}</a>` : ""}</section>`;
+    return html + `</div>`;
+  }
+  function bindHome(){
+    document.querySelectorAll("#view [data-go]").forEach(a => a.addEventListener("click", e => {
+      e.preventDefault(); tab = a.dataset.go; openDemon = openPlayer = openUp = openRun = null; query = ""; render(); window.scrollTo({top:0});
+    }));
+    $("#homeEdit")?.addEventListener("click", openHomeEditor);
+  }
+  function openHomeEditor(){
+    const h = homeCfg(), hr = h.hero;
+    const tsel = (attr, val) => `<select ${attr}>${HOME_TARGETS.map(([v,l]) => `<option value="${v}" ${v === val ? "selected" : ""}>${l}</option>`).join("")}</select>`;
+    const rng = (attr, label, val, max, unit) => `<label class="f">${label}: <span class="rv" data-u="${unit}">${val}${unit}</span><input type="range" ${attr} min="0" max="${max}" step="1" value="${val}"></label>`;
+    const linkF = (px, b) => `<div class="grid2"><label class="f">Texto del botón <span class="hint">vacío = sin botón</span><input id="${px}l" value="${esc(b.label||"")}"></label>
+        <label class="f">Lleva a${tsel(`id="${px}t"`, b.target)}</label></div>
+        <label class="f">Link <span class="hint">solo si elegiste “Otro link…”</span><input id="${px}u" value="${esc(b.url||"")}" placeholder="https://..."></label>`;
+    const cardRow = c => `<div class="hc-edit" data-id="${esc(c.id)}">
+        <div class="hc-head"><b>Recuadro</b><span style="margin-left:auto"></span><button type="button" class="ibtn" data-mv="-1" aria-label="Subir">▲</button><button type="button" class="ibtn" data-mv="1" aria-label="Bajar">▼</button><button type="button" class="ibtn" data-cdel aria-label="Quitar">✕</button></div>
+        <div class="grid2">
+          <label class="f">Título<input data-k="title" value="${esc(c.title||"")}"></label>
+          <label class="f">Etiqueta pequeña <span class="hint">ej. RANKING OFICIAL</span><input data-k="eyebrow" value="${esc(c.eyebrow||"")}"></label>
+          <label class="f">Color <span class="hint">etiqueta, ícono y link</span><input type="color" data-k="color" value="${esc(c.color||"#3b82f6")}" style="height:38px;padding:2px"></label>
+          <label class="f">Ícono <span class="hint">emoji o símbolo, opcional</span><input data-k="icon" maxlength="4" value="${esc(c.icon||"")}"></label>
+        </div>
+        <label class="f" style="margin-top:8px">Texto<textarea data-k="text" rows="2">${esc(c.text||"")}</textarea></label>
+        <div class="grid2" style="margin-top:8px">
+          <label class="f">Texto del link<input data-k="linkText" value="${esc(c.linkText||"")}"></label>
+          <label class="f">Lleva a${tsel(`data-k="target"`, c.target||"main")}</label>
+        </div>
+        <label class="f" style="margin-top:8px">Link <span class="hint">solo si elegiste “Otro link…”</span><input data-k="url" value="${esc(c.url||"")}" placeholder="https://..."></label>
+        <label class="f" style="margin-top:8px">Imagen de fondo <span class="hint">opcional</span>${imgField("hci_" + c.id, c.img, "Link de la imagen o pulsa Subir")}</label>
+        <div class="grid2" style="margin-top:8px">${rng(`data-k="dim"`, "Oscurecer imagen", pctNum(c.dim,60,95), 95, "%")}${rng(`data-k="blur"`, "Difuminado", pctNum(c.blur,0,20), 20, "px")}</div>
+      </div>`;
+    modal(`<h3>Página de inicio</h3><form id="hf">
+      <label class="hint" style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="h_on" ${h.enabled ? "checked" : ""}> Mostrar la página de inicio al entrar al sitio</label>
+      <div class="sub">Portada</div>
+      <label class="f">Imagen de la portada <span class="hint">vacío = sin imagen</span>${imgField("h_img", hr.img, "Link de la imagen o pulsa Subir")}</label>
+      <div class="grid2" style="margin-top:8px">${rng(`id="h_dim"`, "Oscurecer", pctNum(hr.dim,30,95), 95, "%")}${rng(`id="h_blur"`, "Difuminado", pctNum(hr.blur,0,20), 20, "px")}</div>
+      <label class="f" style="margin-top:8px">Alto de la imagen: <span class="rv" data-u="px">${pctNum(hr.height,200,500)}px</span><input type="range" id="h_h" min="100" max="500" step="10" value="${pctNum(hr.height,200,500)}"></label>
+      <div class="grid2" style="margin-top:8px">
+        <label class="f">Título<input id="h_title" value="${esc(hr.title)}"></label>
+        <label class="f">Parte del título en color <span class="hint">ej. EL SALVADOR</span><input id="h_acc" value="${esc(hr.accent)}"></label>
+        <label class="f">Color de esa parte<input type="color" id="h_accc" value="${esc(/^#[0-9a-f]{6}$/i.test(hr.accentColor||"") ? hr.accentColor : "#60a5fa")}" style="height:38px;padding:2px"></label>
+      </div>
+      <label class="f" style="margin-top:8px">Texto<textarea id="h_text" rows="2">${esc(hr.text)}</textarea></label>
+      <p class="hint" style="margin:10px 0 4px"><b>Botón principal</b></p>${linkF("h_b1", hr.b1)}
+      <p class="hint" style="margin:10px 0 4px"><b>Segundo botón</b></p>${linkF("h_b2", hr.b2)}
+      <div class="sub">Recuadros</div>
+      <div class="grid2">
+        <label class="f">Etiqueta de la sección<input id="h_eb" value="${esc(h.eyebrow)}"></label>
+        <label class="f">Título de la sección<input id="h_st" value="${esc(h.title)}"></label>
+      </div>
+      <label class="f" style="margin-top:8px">Texto de la sección<input id="h_ss" value="${esc(h.sub)}"></label>
+      <div id="hcRows">${h.cards.map(cardRow).join("")}</div>
+      <button type="button" class="btn" id="hcAdd" style="margin-top:10px">+ Agregar recuadro</button>
+      <div class="sub">Recuadro final</div>
+      <div class="grid2">
+        <label class="f">Etiqueta pequeña<input id="h_fe" value="${esc(h.foot.eyebrow)}"></label>
+        <label class="f">Texto <span class="hint">vacío = sin recuadro final</span><input id="h_ft" value="${esc(h.foot.text)}"></label>
+      </div>
+      ${linkF("h_f", h.foot)}
+      <div class="foot"><span class="status" id="hStatus"></span><button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit">Guardar</button></div></form>`, close => {
+      $("#cancel").onclick = close;
+      const form = $("#hf");
+      bindUploads($("#hStatus"));
+      form.addEventListener("input", e => { if (e.target.type === "range"){ const rv = e.target.closest("label").querySelector(".rv"); if (rv) rv.textContent = e.target.value + rv.dataset.u; } });
+      $("#hcAdd").onclick = () => {
+        const wrap = document.createElement("div");
+        wrap.innerHTML = cardRow({id: uid(), title:"Nuevo recuadro", color:"#3b82f6", target:"main", linkText:"Ver más", dim:60});
+        const row = wrap.firstElementChild; $("#hcRows").appendChild(row); bindUploadsIn(row, $("#hStatus")); row.scrollIntoView({block:"nearest"});
+      };
+      $("#hcRows").addEventListener("click", e => {
+        const b = e.target.closest("button"); if (!b) return;
+        const row = b.closest(".hc-edit");
+        if (b.hasAttribute("data-cdel")) row.remove();
+        if (b.dataset.mv === "-1" && row.previousElementSibling) row.parentNode.insertBefore(row, row.previousElementSibling);
+        if (b.dataset.mv === "1" && row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling, row);
+      });
+      const v = id => $("#" + id).value.trim();
+      const link = px => ({label: v(px + "l"), target: $("#" + px + "t").value, url: v(px + "u")});
+      form.addEventListener("submit", e => {
+        e.preventDefault();
+        const cards = [...document.querySelectorAll("#hcRows .hc-edit")].map(r => {
+          const g = k => r.querySelector(`[data-k="${k}"]`).value;
+          return {id: r.dataset.id, title: g("title").trim(), eyebrow: g("eyebrow").trim(), color: g("color"), icon: g("icon").trim(), text: g("text").trim(),
+            linkText: g("linkText").trim(), target: g("target"), url: g("url").trim(), img: $("#hci_" + r.dataset.id).value.trim(), dim: Number(g("dim")), blur: Number(g("blur"))};
+        });
+        const b1 = link("h_b1"), b2 = link("h_b2"), fl = link("h_f");
+        const home = {enabled: $("#h_on").checked,
+          hero: {img: v("h_img"), dim: Number($("#h_dim").value), blur: Number($("#h_blur").value), height: Number($("#h_h").value),
+            title: v("h_title"), accent: v("h_acc"), accentColor: $("#h_accc").value, text: $("#h_text").value.trim(), b1, b2},
+          eyebrow: v("h_eb"), title: v("h_st"), sub: v("h_ss"), cards,
+          foot: {eyebrow: v("h_fe"), text: v("h_ft"), label: fl.label, target: fl.target, url: fl.url}};
+        if (!home.enabled && tab === "home") tab = "main";
+        save({...state, home}); close();
+      });
+    });
+  }
+
+  // ---------- "Acerca de" distinto en cada pestaña ----------
+  const ABOUT_TABS = [["main","Lista (y páginas de cada nivel)"],["up","Futuros niveles"],["runs","Hardest runs"],["packs","Packs"],["stats","Leaderboard (y perfiles)"],["roul","Ruleta"],["send","Subir récord"]];
+  function openAboutEditor(){
+    const a = state.aboutTabs || {};
+    modal(`<h3>“Acerca de” por pestaña</h3>
+      <p class="hint" style="margin-top:0">Lo que escribas aquí sale en el cuadro de la derecha solo en esa pestaña. Si dejas una vacía, usa el texto general de “Editar sitio”.</p>
+      <form id="abf">${ABOUT_TABS.map(([k,label]) => `<details class="hc-edit" ${(a[k]||{}).text ? "open" : ""}><summary style="cursor:pointer;font-weight:700">${label}${(a[k]||{}).text ? "" : ` <span class="hint">(usa el general)</span>`}</summary>
+        <label class="f" style="margin-top:8px">Título del cuadro<input data-ab="${k}" data-f="title" value="${esc((a[k]||{}).title||"")}" placeholder="Acerca de la lista"></label>
+        <label class="f" style="margin-top:8px">Texto<textarea data-ab="${k}" data-f="text" rows="6">${esc((a[k]||{}).text||"")}</textarea></label></details>`).join("")}
+      <div class="foot"><span class="status"></span><button type="button" class="btn" id="cancel">Cancelar</button><button class="btn primary" type="submit">Guardar</button></div></form>`, close => {
+      $("#cancel").onclick = close;
+      $("#abf").addEventListener("submit", e => {
+        e.preventDefault();
+        const out = {};
+        document.querySelectorAll("#abf [data-ab]").forEach(x => { const val = x.value.trim(); if (val){ out[x.dataset.ab] = out[x.dataset.ab] || {}; out[x.dataset.ab][x.dataset.f] = val; } });
+        save({...state, aboutTabs: out}); close();
+      });
+    });
+  }
+
+  // ---------- fondo que cambia al bajar por la lista ----------
+  let bgCur = "", bgTick = false;
+  function setScrollBg(src){
+    if (src === bgCur) return;
+    bgCur = src;
+    const a = $("#bgfxA"), b = $("#bgfxB"); if (!a) return;
+    const show = a.classList.contains("on") ? b : a, hide = show === a ? b : a;
+    if (src){
+      const dim = Math.max(0, Math.min(95, Number((state.theme||{}).bgDim ?? 80)));
+      const g = `color-mix(in srgb, var(--bg) ${dim}%, transparent)`;
+      show.style.backgroundImage = `linear-gradient(${g}, ${g}), url("${String(src).replace(/["\\]/g, "")}")`;
+      show.classList.add("on");
+    }
+    hide.classList.remove("on");
+  }
+  function scrollBg(){
+    if (!(state.theme||{}).scrollBg || tab !== "main" || openDemon || openPlayer || openUp || openRun) return setScrollBg("");
+    const rows = document.querySelectorAll("#view .list .row[data-open]"), mid = innerHeight * 0.5;
+    let pos = 0;
+    for (const r of rows){ if (r.getBoundingClientRect().top > mid) break; pos = state.demons.findIndex(d => d.id === r.dataset.open) + 1; }
+    const at = pos >= state.extSize ? state.extSize : pos >= state.mainSize ? state.mainSize : 0;
+    const d = at ? state.demons[at - 1] : null;
+    setScrollBg(d ? (d.art || thumbSrc(d) || "") : "");
+  }
+  addEventListener("scroll", () => { if (bgTick) return; bgTick = true; requestAnimationFrame(() => { bgTick = false; scrollBg(); }); }, {passive: true});
+
   // ---------- eventos ----------
   $("#tabs").addEventListener("click", e => {
     const t = e.target.closest(".tab"); if (!t) return;
@@ -3022,7 +3308,9 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
   $("#editBadges").onclick = openBadgesEditor;
   $("#editPacks").onclick = openPacksEditor;
   $("#editCopyTypes").onclick = openCopyTypesEditor;
-  const goHome = () => { tab = "main"; openDemon = openPlayer = openUp = openRun = null; query = ""; tagFilter.clear(); render(); window.scrollTo({top:0, behavior:"smooth"}); };
+  $("#editHome").onclick = openHomeEditor;
+  $("#editAbout").onclick = openAboutEditor;
+  const goHome = () => { tab = homeOn() ? "home" : "main"; openDemon = openPlayer = openUp = openRun = null; query = ""; tagFilter.clear(); render(); window.scrollTo({top:0, behavior:"smooth"}); };
   $("#brand").addEventListener("click", goHome);
   $("#brand").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); goHome(); } });
   $("#openBlocked").onclick = openBlockedNames;
@@ -3035,7 +3323,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
 
   // ---------- botón "atrás" del navegador ----------
   // Cada vista tiene su dirección (#/leaderboard, #/nivel/…), así el navegador puede volver atrás.
-  const TAB_SLUG = {main:"lista", up:"futuros", runs:"hardest-runs", packs:"packs", stats:"leaderboard", roul:"ruleta", send:"subir-record", pend:"pendientes"};
+  const TAB_SLUG = {home:"inicio", main:"lista", up:"futuros", runs:"hardest-runs", packs:"packs", stats:"leaderboard", roul:"ruleta", send:"subir-record", pend:"pendientes"};
   const SLUG_TAB = {...Object.fromEntries(Object.entries(TAB_SLUG).map(([k,v]) => [v,k])), principal:"main", extendida:"main", legacy:"main"};
   let restoring = false;
   function viewHash(){
@@ -3063,7 +3351,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
     else if (kind === "futuro" && id) { openUp = id; tab = "up"; }
     else if (kind === "run" && id) { openRun = id; tab = "runs"; }
     else if (SLUG_TAB[kind]) tab = SLUG_TAB[kind];
-    else tab = "main";
+    else tab = homeOn() ? "home" : "main";
     if (openDemon) tab = "main";
     query = "";
   }
