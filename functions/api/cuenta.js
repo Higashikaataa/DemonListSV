@@ -79,7 +79,8 @@ function cleanProfile(p) {
     youtube: String(p.youtube || "").trim().slice(0, 200).replace(/[\s"'<>]/g, ""),
     nameColor: /^#[0-9a-f]{6}$/i.test(p.nameColor || "") ? p.nameColor : "",
     bio: String(p.bio || "").replace(/\r/g, "").slice(0, 400).trim(),
-    dept: DEPTS.includes(p.dept) ? p.dept : ""
+    dept: DEPTS.includes(p.dept) ? p.dept : "",
+    bgLevel: /^[\w-]{1,40}$/.test(p.bgLevel || "") ? p.bgLevel : ""
   };
 }
 
