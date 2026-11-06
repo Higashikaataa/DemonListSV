@@ -1001,7 +1001,10 @@ body.is-home aside{display:none}
     };
     const info = playerInfo(p.name), ytUrl = ytChannelUrl(info.youtube);
     const isMe = me && me.k === pkey(p.name);
-    const bgd = info.bgLevel ? state.demons.find(x => x.id === info.bgLevel) : null, bgsrc = bgd ? (bgd.art || thumbSrc(bgd)) : "";
+    const bgv = info.bgLevel || "", bgd = !bgv ? null
+      : bgv.startsWith("u--") ? (state.upcoming||[]).find(x => x.id === bgv.slice(3))
+      : bgv.startsWith("r--") ? (state.runs||[]).find(x => x.id === bgv.slice(3))
+      : state.demons.find(x => x.id === bgv), bgsrc = bgd ? (bgd.art || thumbSrc(bgd)) : "";
     html += `<div class="detail-hero phero${info.banner ? " has-banner" : ""}${bgsrc ? " has-lvbg" : ""}" style="grid-template-columns:${info.banner ? "" : "minmax(0,1fr)"}${bgsrc ? `;--lvbg:url('${cssUrl(bgsrc)}')` : ""}">
       <div class="pbody" style="min-width:0">
        <div class="phead">
@@ -1975,8 +1978,12 @@ body.is-home aside{display:none}
         ${imgField("mp_av", own.avatar, "Link de la imagen o pulsa Subir")}</label>
       <label class="f" style="margin-top:12px">Imagen de portada <span class="hint">sale a la derecha de tu perfil, ocupando un tercio</span>
         ${imgField("mp_ban", own.banner, "Link de la imagen o pulsa Subir")}</label>
-      <label class="f" style="margin-top:12px">Fondo del perfil <span class="hint">la imagen de un nivel de la lista llena el espacio libre de tu perfil</span>
-        <select id="mp_bgl"><option value="">Sin fondo</option>${state.demons.map((d,i) => `<option value="${esc(d.id)}" ${own.bgLevel === d.id ? "selected" : ""}>#${i+1} · ${esc(d.name)}</option>`).join("")}</select></label>
+      <label class="f" style="margin-top:12px">Fondo del perfil <span class="hint">la imagen de un nivel de la lista, de futuros niveles o de hardest runs llena el espacio libre de tu perfil</span>
+        <select id="mp_bgl"><option value="">Sin fondo</option>
+          <optgroup label="Lista">${state.demons.map((d,i) => `<option value="${esc(d.id)}" ${own.bgLevel === d.id ? "selected" : ""}>#${i+1} · ${esc(d.name)}</option>`).join("")}</optgroup>
+          ${(state.upcoming||[]).length ? `<optgroup label="Futuros niveles">${state.upcoming.map(d => `<option value="u--${esc(d.id)}" ${own.bgLevel === "u--" + d.id ? "selected" : ""}>${esc(d.name)}</option>`).join("")}</optgroup>` : ""}
+          ${(state.runs||[]).length ? `<optgroup label="Hardest runs">${state.runs.map(d => `<option value="r--${esc(d.id)}" ${own.bgLevel === "r--" + d.id ? "selected" : ""}>${esc(d.name)}</option>`).join("")}</optgroup>` : ""}
+        </select></label>
       <label class="f" style="margin-top:12px">Descripción <span class="hint"><span id="mp_bioc">${(own.bio||"").length}</span>/400</span>
         <textarea id="mp_bio" rows="3" maxlength="400" placeholder="Cuéntale algo a la gente: tu nivel favorito, tu canal, desde cuándo juegas…">${esc(own.bio||"")}</textarea></label>
       ${own.dept ? `<label class="f" style="margin-top:12px">Departamento <span class="hint">es definitivo; si te equivocaste, pide a un moderador que lo libere</span>
