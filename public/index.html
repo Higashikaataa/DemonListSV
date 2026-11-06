@@ -336,7 +336,7 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
 .stage.has-art::before{background-position:center 30%}
 .lvpage .panel,.lvpage .tablebox,.lvpage .empty{background:var(--levelbox,var(--surface))}
 .pack.has-bg{position:relative;isolation:isolate;overflow:hidden}
-.pack.has-bg::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,color-mix(in srgb,var(--surface) 35%,transparent),color-mix(in srgb,var(--surface) 80%,transparent) 70%),var(--pbg) center top/cover no-repeat}
+.pack.has-bg::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,color-mix(in srgb,var(--surface) 35%,transparent),color-mix(in srgb,var(--surface) 80%,transparent) 70%),var(--pbg) center top/cover no-repeat;opacity:var(--pop,1)}
 .pack.has-bg h3,.pack.has-bg .pmeta,.pack.has-bg .psub,.pack.has-bg>p{text-shadow:0 1px 4px rgba(0,0,0,.6)}
 .home{display:flex;flex-direction:column;gap:22px}
 body.is-home main.wrap{grid-template-columns:minmax(0,1fr)}
@@ -2574,7 +2574,7 @@ body.is-home aside{display:none}
       const lv = packLevels(p), t = tierOf(p.tier), pc = packColor(p), done = mine ? lv.filter(x => mine.has(x.d.id)).length : 0;
       const victors = packVictors(p), full = mine && lv.length && done === lv.length;
       const top = lv.slice().sort((a, b) => a.pos - b.pos)[0], bg = p.bg || (top ? (top.d.art || profileImg(top.d)) : "");
-      return `<section class="pack${bg ? " has-bg" : ""}" id="pack-${esc(p.id)}" style="--pc:${esc(pc)}${bg ? `;--pbg:url('${cssUrl(bg)}')` : ""}">
+      return `<section class="pack${bg ? " has-bg" : ""}" id="pack-${esc(p.id)}" style="--pc:${esc(pc)}${bg ? `;--pbg:url('${cssUrl(bg)}');--pop:${Math.max(0, Math.min(100, Number(p.bgOpacity ?? 100))) / 100}` : ""}">
         <h3>${esc(p.name)}${full ? `<span class="pdone" title="Completaste este pack">✓</span>` : ""}</h3>
         <div class="pmeta">${t ? `<span class="tierpill" style="--tc:${esc(t.color)};color:${inkFor(t.color)}">${esc(t.name)}</span>` : ""}<span>${lv.length} ${lv.length === 1 ? "nivel" : "niveles"}</span>
           ${mine ? `<span class="pprog">${done}/${lv.length} completados</span>` : ""}</div>
@@ -2647,6 +2647,8 @@ body.is-home aside{display:none}
       </div>
       <label class="f" style="margin-top:12px">Imagen de fondo <span class="hint">vacío = la imagen del nivel más difícil del pack</span>
         ${imgField("pk_bg", p.bg || "", "Link de la imagen o pulsa Subir")}</label>
+      <label class="f" style="margin-top:12px">Opacidad del fondo: <span id="pk_opv">${p.bgOpacity ?? 100}%</span> <span class="hint">menos = la imagen se ve más suave</span>
+        <input id="pk_op" type="range" min="0" max="100" step="5" value="${p.bgOpacity ?? 100}"></label>
       <label class="f" style="margin-top:12px">Niveles <span class="hint"><span id="pk_count">${sel.size}</span> elegidos</span>
         <input id="pk_q" type="search" placeholder="Buscar nivel">
       </label>
@@ -2659,6 +2661,7 @@ body.is-home aside{display:none}
       $("#pk_q").addEventListener("input", e => { const q = e.target.value.trim().toLowerCase().replace(/^#/, ""); document.querySelectorAll("#pk_levels label").forEach(l => l.hidden = !!q && !l.dataset.name.includes(q) && l.dataset.pos !== q); });
       $("#pk_q").addEventListener("keydown", e => { if (e.key === "Enter") e.preventDefault(); });
       bindUploads($("#pkStatus"));
+      $("#pk_op").addEventListener("input", e => $("#pk_opv").textContent = e.target.value + "%");
       $("#pk_levels").addEventListener("change", () => $("#pk_count").textContent = document.querySelectorAll("#pk_levels input:checked").length);
       const del = $("#pkDel");
       if (del) del.onclick = () => {
@@ -2668,7 +2671,7 @@ body.is-home aside{display:none}
       $("#pkf").addEventListener("submit", e => {
         e.preventDefault();
         const np = {...p, name: $("#pk_name").value.trim(), tier: $("#pk_tier").value, color: $("#pk_colorTier").checked ? "" : $("#pk_color").value,
-          desc: $("#pk_desc").value.trim(), bg: $("#pk_bg").value.trim(), levels: [...document.querySelectorAll("#pk_levels input:checked")].map(c => c.value)};
+          desc: $("#pk_desc").value.trim(), bg: $("#pk_bg").value.trim(), bgOpacity: Number($("#pk_op").value), levels: [...document.querySelectorAll("#pk_levels input:checked")].map(c => c.value)};
         if (!np.name){ $("#pkStatus").textContent = "Escribe el nombre del pack."; return; }
         if (!np.levels.length){ $("#pkStatus").textContent = "Elige al menos un nivel."; return; }
         const packs = isNew ? [...(state.packs||[]), np] : (state.packs||[]).map(x => x.id === p.id ? np : x);
@@ -3025,7 +3028,7 @@ body.is-home aside{display:none}
         ${imgField("s_bg", th.bg, "https://.../fondo.jpg o pulsa Subir")}</label>
       <label class="f" style="margin-top:12px">Logo <span class="hint">sale al lado del título; mejor una imagen cuadrada o PNG sin fondo</span>
         ${imgField("s_logo", th.logo, "Link de la imagen o pulsa Subir")}</label>
-      <label class="hint" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-weight:600"><input type="checkbox" id="s_scroll" ${th.scrollBg ? "checked" : ""}> Cambiar el fondo al bajar por la lista: al llegar al #${state.mainSize} sale la imagen de ese nivel y al llegar al #${state.extSize} la de ese otro</label>
+      <label class="hint" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-weight:600"><input type="checkbox" id="s_scroll" ${th.scrollBg ? "checked" : ""}> Cambiar el fondo al bajar por la lista: al llegar al #${state.mainSize+1} sale la imagen de ese nivel y al llegar al #${state.extSize+1} la de ese otro</label>
       <div class="sub">Discord</div>
       <label class="hint" style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="s_dnot" ${state.discordNotify === false ? "" : "checked"}> Avisar en Discord cada récord que se acepta</label>
       <div class="btn-row" style="margin-top:8px;align-items:center"><button type="button" class="btn" id="s_dtest">Enviar mensaje de prueba</button><span class="hint" id="s_dres">Necesita el webhook DISCORD_WEBHOOK en Cloudflare.</span></div>
@@ -3284,7 +3287,8 @@ body.is-home aside{display:none}
     const rows = document.querySelectorAll("#view .list .row[data-open]"), mid = innerHeight * 0.5;
     let pos = 0;
     for (const r of rows){ if (r.getBoundingClientRect().top > mid) break; pos = state.demons.findIndex(d => d.id === r.dataset.open) + 1; }
-    const at = pos >= state.extSize ? state.extSize : pos >= state.mainSize ? state.mainSize : 0;
+    // Al llegar al primer nivel de la extendida (#76) y de la legacy (#151) sale la imagen de ese nivel
+    const at = pos > state.extSize ? state.extSize + 1 : pos > state.mainSize ? state.mainSize + 1 : 0;
     const d = at ? state.demons[at - 1] : null;
     setScrollBg(d ? (d.art || thumbSrc(d) || "") : "");
   }
