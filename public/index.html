@@ -304,6 +304,14 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
 .chosen{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px;padding:10px 12px;border:1px solid var(--accent);border-radius:10px;background:var(--surface-2)}
 .chosen b{margin-right:auto}
 .vtag{display:inline-block;margin-left:8px;padding:1px 7px;border-radius:999px;font-size:.68rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;vertical-align:middle;background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 50%,transparent)}
+.livelist{display:flex;flex-direction:column;gap:8px}
+.liverow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.liverow .lt{min-width:0;overflow-wrap:anywhere}
+.liverow .lt .sm{color:var(--muted);font-size:.8rem;margin-top:2px}
+.liverow .lpct{font-family:var(--display);font-weight:800;font-size:1.15rem;color:var(--accent);text-align:right;white-space:nowrap}
+.liverow .lpct.beat{color:#22c55e}
+.liverow .lacts{grid-column:2 / -1;display:flex;gap:6px;flex-wrap:wrap}
+.liverow .lvl{background:none;border:none;padding:0;font:inherit;font-weight:700;color:var(--title);cursor:pointer;text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 35%,transparent)}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-bottom:14px}
 .seg button{border:none;background:var(--surface-2);padding:8px 14px;cursor:pointer;font-weight:700}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
@@ -405,6 +413,7 @@ body.is-home aside{display:none}
       <button class="tab" role="tab" data-tab="up" aria-selected="false">Futuros niveles</button>
       <button class="tab" role="tab" data-tab="runs" aria-selected="false">Hardest runs</button>
       <button class="tab" role="tab" data-tab="packs" aria-selected="false">Packs</button>
+      <button class="tab" role="tab" data-tab="live" aria-selected="false">En vivo</button>
       <button class="tab" role="tab" data-tab="stats" aria-selected="false">Leaderboard</button>
       <button class="tab" role="tab" data-tab="roul" aria-selected="false">Ruleta</button>
       <button class="tab" role="tab" data-tab="send" aria-selected="false">Subir récord</button>
@@ -794,6 +803,7 @@ body.is-home aside{display:none}
     if (tab === "home"){ v.innerHTML = homeHTML(); bindHome(); return; }
     if (tab === "runs"){ v.innerHTML = runsListHTML(); bindRunsList(); return; }
     if (tab === "packs"){ v.innerHTML = packsHTML(); bindPacks(); return; }
+    if (tab === "live"){ v.innerHTML = liveHTML(); bindLive(); if (!live && !liveLoading) loadLive(); return; }
     if (tab === "up"){ v.innerHTML = upListHTML(); bindUpList(); return; }
     if (tab === "stats"){ v.innerHTML = statsHTML(); bindPlayerLinks();
       document.querySelectorAll("#deptPanel [data-demon]").forEach(x => x.addEventListener("click", () => { openDemon = x.dataset.demon; render(); window.scrollTo({top:0}); }));
@@ -3209,7 +3219,7 @@ body.is-home aside{display:none}
 
 
   // ---------- página de inicio ----------
-  const HOME_TARGETS = [["main","Lista"],["up","Futuros niveles"],["runs","Hardest runs"],["packs","Packs"],["stats","Leaderboard"],["roul","Ruleta"],["send","Subir récord"],["discord","Discord del sitio"],["url","Otro link…"],["none","Nada"]];
+  const HOME_TARGETS = [["main","Lista"],["up","Futuros niveles"],["runs","Hardest runs"],["packs","Packs"],["live","En vivo"],["stats","Leaderboard"],["roul","Ruleta"],["send","Subir récord"],["discord","Discord del sitio"],["url","Otro link…"],["none","Nada"]];
   const homeOn = () => !state.home || state.home.enabled !== false;
   const DEFAULT_CARDS = [
     {id:"c1", eyebrow:"Ranking oficial", color:"#3b82f6", icon:"☰", title:"Lista principal", text:"Explora los demons de la lista, sus posiciones, verificadores y récords de los jugadores.", linkText:"Ver lista", target:"main"},
@@ -3363,7 +3373,7 @@ body.is-home aside{display:none}
   }
 
   // ---------- "Acerca de" distinto en cada pestaña ----------
-  const ABOUT_TABS = [["main","Lista (y páginas de cada nivel)"],["up","Futuros niveles"],["runs","Hardest runs"],["packs","Packs"],["stats","Leaderboard (y perfiles)"],["roul","Ruleta"],["send","Subir récord"]];
+  const ABOUT_TABS = [["main","Lista (y páginas de cada nivel)"],["up","Futuros niveles"],["runs","Hardest runs"],["packs","Packs"],["live","En vivo"],["stats","Leaderboard (y perfiles)"],["roul","Ruleta"],["send","Subir récord"]];
   function openAboutEditor(){
     const a = state.aboutTabs || {};
     modal(`<h3>“Acerca de” por pestaña</h3>
@@ -3409,6 +3419,133 @@ body.is-home aside{display:none}
   }
   addEventListener("scroll", () => { if (bgTick) return; bgTick = true; requestAnimationFrame(() => { bgTick = false; scrollBg(); }); }, {passive: true});
 
+
+  // ---------- progresos en vivo (mod "What is he doing?" -> canal de Discord -> /api/envivo) ----------
+  let live = null, liveLoading = false, liveAll = false;
+  async function loadLive(){
+    liveLoading = true;
+    try {
+      const r = await fetch("/api/envivo", {cache:"no-store"});
+      const d = await r.json().catch(() => ({}));
+      live = r.ok ? d : {items: live ? live.items : [], configured: true, error: d.error || "Error " + r.status};
+    } catch { live = {items: live ? live.items : [], configured: true, error: "No se pudo cargar."}; }
+    liveLoading = false;
+    if (tab === "live" && !$("#modalRoot").innerHTML) render();
+  }
+  setInterval(() => { if (tab === "live" && document.visibilityState === "visible") loadLive(); }, 60000);
+  // Une un progreso con un nivel de la lista, de futuros o de hardest runs (por ID y, si no hay ID, por nombre)
+  function liveMatch(x){
+    const lists = [["d", state.demons], ["u", state.upcoming||[]], ["r", state.runs||[]]];
+    for (const [kind, arr] of lists){
+      let i = x.levelId ? arr.findIndex(v => String(v.levelId||"").trim() === x.levelId) : -1;
+      if (i < 0) i = arr.findIndex(v => pkey(v.name) === pkey(x.level) && (!x.levelId || !String(v.levelId||"").trim()));
+      if (i >= 0) return {kind, obj: arr[i], pos: i + 1};
+    }
+    return null;
+  }
+  const liveAgo = t => {
+    const s = Math.max(0, (Date.now() - t) / 1000);
+    if (s < 60) return "hace un momento";
+    if (s < 3600) return `hace ${Math.floor(s/60)} min`;
+    if (s < 86400) return `hace ${Math.floor(s/3600)} h`;
+    if (s < 86400 * 7) { const d = Math.floor(s/86400); return `hace ${d} ${d === 1 ? "día" : "días"}`; }
+    return new Date(t).toLocaleDateString("es");
+  };
+  // Lo que pasaría si un moderador lo pasa a la lista
+  function liveAction(x, m){
+    if (!m) return null;
+    if (m.kind === "d"){
+      if (x.type === "run") return null;
+      const d = m.obj, rule = levelRule(d.id);
+      if (pkey(d.verifier) === pkey(x.player)) return {done: "Es el verificador"};
+      const cur = (d.records||[]).find(r => pkey(r.player) === pkey(x.player));
+      if (cur && +cur.progress >= x.pct) return {done: "Ya está en la lista"};
+      if (x.pct < 100 && x.pct < rule.min) return {done: rule.min === 100 ? "Solo cuenta el 100%" : `No llega al list% (${rule.min}%)`};
+      return {label: cur ? `Actualizar récord a ${x.pct}%` : "Agregar como récord"};
+    }
+    if (m.kind === "u"){
+      if (x.type === "run") return null;
+      const u = m.obj;
+      if (pkey(u.player) === pkey(x.player) && clampPct(u.progress) >= x.pct && !upRuns(u)) return {done: "Ya está en Futuros"};
+      if (u.player && pkey(u.player) !== pkey(x.player) && clampPct(u.progress) >= x.pct) return {done: `${u.player} tiene más (${clampPct(u.progress)}%)`};
+      return {label: "Poner en Futuros niveles"};
+    }
+    const from = x.type === "run" ? x.from : 0;
+    const cur = (m.obj.records||[]).find(rr => pkey(rr.player) === pkey(x.player) && clampPct(rr.from) === from && clampPct(rr.to) >= x.pct);
+    if (cur) return {done: "Ya está en Hardest runs"};
+    return {label: "Agregar a Hardest runs"};
+  }
+  function liveHTML(){
+    let html = `<div class="section-head"><h2>Progresos en vivo</h2><span class="count">New bests y completaciones que llegan del mod de Geode</span>
+      <button class="btn" id="liveRefresh" style="margin-left:auto">Actualizar</button></div>`;
+    if (!live) return html + `<div class="empty"><strong>Cargando progresos</strong></div>`;
+    if (!live.configured) return html + `<div class="empty"><strong>Todavía no está conectado</strong>${editing ? "Falta poner DISCORD_BOT_TOKEN y DISCORD_CHANNEL_ID en Cloudflare." : "Pronto vas a ver aquí los progresos de los jugadores."}</div>`;
+    if (live.error && editing) html += `<p class="status err">${esc(live.error)}</p>`;
+    const known = new Map(buildPlayers().map(p => [pkey(p.name), p.name]));
+    const rows = (live.items||[]).map(x => ({x, m: liveMatch(x)})).filter(r => liveAll || r.m);
+    html += `<div class="seg" role="group" aria-label="Qué niveles mostrar"><button type="button" data-lall="0" aria-pressed="${!liveAll}">Niveles de la demonlist</button><button type="button" data-lall="1" aria-pressed="${liveAll}">Todos los niveles</button></div>`;
+    html += `<p class="hint" style="margin:0 0 12px">Estos progresos los manda el mod de cada jugador y no dan puntos. Para que cuenten, envía el récord con su video en “Subir récord”.</p>`;
+    if (!rows.length) return html + `<div class="empty"><strong>Todavía no hay progresos</strong>${liveAll ? "Cuando alguien consiga un new best o se pase un nivel, va a salir aquí." : "Cuando alguien consiga un new best en un nivel de la demonlist, va a salir aquí."}</div>`;
+    html += `<div class="livelist">${rows.slice(0, 150).map(({x, m}) => {
+      const pname = known.get(pkey(x.player));
+      const who = pname ? plink(pname) : `<b>${esc(x.player)}</b>`;
+      const attr = !m ? "" : m.kind === "d" ? `data-demon="${esc(m.obj.id)}"` : m.kind === "u" ? `data-upopen="${esc(m.obj.id)}"` : `data-ropen="${esc(m.obj.id)}"`;
+      const lv = m ? `<button type="button" class="lvl" ${attr}>${m.kind === "d" ? "#" + m.pos + " " : ""}${esc(m.obj.name)}</button>` : `<b>${esc(x.level)}</b>`;
+      const where = !m ? `de ${esc(x.creator)}` : m.kind === "d" ? esc(SEC_NAME[section(m.pos)]) : m.kind === "u" ? "Futuros niveles" : "Hardest runs";
+      const verb = x.type === "beat" ? `se pasó ${lv}` : x.type === "run" ? `hizo un run de ${x.from}–${x.pct}% en ${lv}` : `consiguió un nuevo best en ${lv}`;
+      const act = editing ? liveAction(x, m) : null;
+      return `<div class="liverow">${avHTML(pname || x.player, pname ? playerAvatar(pname) : "", 36)}
+        <div class="lt">${who} ${verb}<div class="sm">${where} · ${liveAgo(x.t)}</div></div>
+        <div class="lpct${x.type === "beat" ? " beat" : ""}">${x.type === "beat" ? "100%" : x.type === "run" ? `${x.from}–${x.pct}%` : x.pct + "%"}</div>
+        ${editing ? `<div class="lacts">${act && act.label ? `<button type="button" class="btn" data-lapply="${esc(x.id)}">${esc(act.label)}</button>` : act && act.done ? `<span class="hint">${esc(act.done)}</span>` : ""}<button type="button" class="ibtn" data-lhide="${esc(x.id)}">Ocultar</button></div>` : ""}
+      </div>`;
+    }).join("")}</div>`;
+    return html;
+  }
+  function bindLive(){
+    bindPlayerLinks();
+    $("#liveRefresh")?.addEventListener("click", () => { $("#liveRefresh").disabled = true; loadLive(); });
+    document.querySelectorAll("[data-lall]").forEach(b => b.onclick = () => { liveAll = b.dataset.lall === "1"; render(); });
+    document.querySelectorAll("#view .lvl[data-demon]").forEach(b => b.onclick = () => { openDemon = b.dataset.demon; render(); window.scrollTo({top:0}); });
+    document.querySelectorAll("#view .lvl[data-upopen]").forEach(b => b.onclick = () => { tab = "up"; openUp = b.dataset.upopen; render(); window.scrollTo({top:0}); });
+    document.querySelectorAll("#view .lvl[data-ropen]").forEach(b => b.onclick = () => { tab = "runs"; openRun = b.dataset.ropen; render(); window.scrollTo({top:0}); });
+    document.querySelectorAll("[data-lhide]").forEach(b => b.onclick = async () => {
+      if (!b.dataset.confirm){ b.dataset.confirm = "1"; b.textContent = "¿Ocultar?"; return; }
+      try {
+        const r = await fetch("/api/envivo?id=" + encodeURIComponent(b.dataset.lhide), {method:"DELETE", headers:{"x-admin-password": password}});
+        if (!r.ok) throw new Error();
+        live.items = live.items.filter(x => x.id !== b.dataset.lhide); render();
+      } catch { setStatus("No se pudo ocultar.", "err"); }
+    });
+    document.querySelectorAll("[data-lapply]").forEach(b => b.onclick = async () => {
+      const x = (live.items||[]).find(y => y.id === b.dataset.lapply); if (!x) return;
+      const m = liveMatch(x), act = liveAction(x, m); if (!m || !act || !act.label) return;
+      const name = buildPlayers().find(p => pkey(p.name) === pkey(x.player))?.name || x.player;
+      let next;
+      if (m.kind === "d"){
+        next = {...state, demons: state.demons.map(d => {
+          if (d.id !== m.obj.id) return d;
+          const recs = (d.records||[]).slice(), i = recs.findIndex(r => pkey(r.player) === pkey(name));
+          if (i < 0) recs.push({player:name, progress:x.pct, video:""}); else recs[i] = {...recs[i], progress:x.pct};
+          return {...d, records:recs};
+        })};
+      } else if (m.kind === "u"){
+        next = {...state, upcoming: state.upcoming.map(u => u.id === m.obj.id ? {...u, player:name, progress:x.pct, pmode:"", runs:0} : u)};
+      } else {
+        const rec = {player:name, from: x.type === "run" ? x.from : 0, to:x.pct, video:""};
+        next = {...state, runs: state.runs.map(r => {
+          if (r.id !== m.obj.id) return r;
+          const recs = (r.records||[]).slice(), cur = recs.find(rr => (rr.player||"").trim());
+          if (!cur || runBetter(rec, cur)) recs.unshift(rec); else recs.push(rec); // si supera al mejor, pasa a ser el mejor run
+          return {...r, records:recs};
+        })};
+      }
+      b.disabled = true;
+      if (await save(next)) setStatus(`Progreso de ${name} agregado. Ponle el video cuando lo tengas.`, "ok");
+      render();
+    });
+  }
+
   // ---------- eventos ----------
   $("#tabs").addEventListener("click", e => {
     const t = e.target.closest(".tab"); if (!t) return;
@@ -3442,7 +3579,7 @@ body.is-home aside{display:none}
 
   // ---------- botón "atrás" del navegador ----------
   // Cada vista tiene su dirección (#/leaderboard, #/nivel/…), así el navegador puede volver atrás.
-  const TAB_SLUG = {home:"inicio", main:"lista", up:"futuros", runs:"hardest-runs", packs:"packs", stats:"leaderboard", roul:"ruleta", send:"subir-record", pend:"pendientes"};
+  const TAB_SLUG = {home:"inicio", main:"lista", up:"futuros", runs:"hardest-runs", packs:"packs", live:"en-vivo", stats:"leaderboard", roul:"ruleta", send:"subir-record", pend:"pendientes"};
   const SLUG_TAB = {...Object.fromEntries(Object.entries(TAB_SLUG).map(([k,v]) => [v,k])), principal:"main", extendida:"main", legacy:"main"};
   let restoring = false;
   function viewHash(){
