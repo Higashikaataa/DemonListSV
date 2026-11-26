@@ -3495,12 +3495,15 @@ body.is-home aside{display:none}
       const pname = known.get(pkey(x.player));
       const who = pname ? plink(pname) : `<b>${esc(x.player)}</b>`;
       const attr = !m ? "" : m.kind === "d" ? `data-demon="${esc(m.obj.id)}"` : m.kind === "u" ? `data-upopen="${esc(m.obj.id)}"` : `data-ropen="${esc(m.obj.id)}"`;
-      const lv = m ? `<button type="button" class="lvl" ${attr}>${m.kind === "d" ? "#" + m.pos + " " : ""}${esc(m.obj.name)}</button>` : `<b>${esc(x.level)}</b>`;
-      const where = !m ? `de ${esc(x.creator)}` : m.kind === "d" ? esc(SEC_NAME[section(m.pos)]) : m.kind === "u" ? "Futuros niveles" : "Hardest runs";
-      const verb = x.type === "beat" ? `se pasó ${lv}` : x.type === "run" ? `hizo un run de ${x.from}–${x.pct}% en ${lv}${x.died ? " (desde startpos)" : ""}` : x.type === "death" ? `murió al ${x.pct}% en ${lv}` : `consiguió un nuevo best en ${lv}`;
+      const lv = m ? `<button type="button" class="lvl" ${attr}>${esc(x.level)}</button>` : `<b>${esc(x.level)}</b>`;
+      const where = !m ? "" : m.kind === "d" ? `#${m.pos} ${esc(SEC_NAME[section(m.pos)])}` : m.kind === "u" ? "Futuros niveles" : "Hardest runs";
+      // El texto sale igual que en el mensaje original del mod (en inglés)
+      const by = `by <b>${esc(x.creator)}</b>`;
+      const verb = x.type === "beat" ? `beat ${lv} ${by}!` : x.type === "run" ? `got a <b>${x.from}-${x.pct}%</b> run on ${lv} ${by}.` : x.type === "death" ? `died at <b>${x.pct}%</b> on ${lv} ${by}.` : `reached a new best of <b>${x.pct}%</b> on ${lv} ${by}.`;
+      const title = x.type === "beat" ? "Level Complete!" : x.type === "run" ? (x.died ? "Died" : "Startpos Complete!") : x.type === "death" ? "Died" : "New Best!";
       const act = editing && x.type !== "death" ? liveAction(x, m) : null;
       return `<div class="liverow">${avHTML(pname || x.player, pname ? playerAvatar(pname) : "", 36)}
-        <div class="lt">${who} ${verb}<div class="sm">${where} · ${liveAgo(x.t)}</div></div>
+        <div class="lt">${who} ${verb}<div class="sm">${title}${where ? " · " + where : ""} · ${liveAgo(x.t)}</div></div>
         <div class="lpct${x.type === "beat" ? " beat" : x.type === "death" ? " death" : ""}">${x.type === "beat" ? "100%" : x.type === "run" ? `${x.from}–${x.pct}%` : x.pct + "%"}</div>
         ${/^https:\/\/(cdn|media)\.discordapp\.(com|net)\//.test(x.img || "") ? `<button type="button" class="lshot" data-lshot="${esc(x.img)}" aria-label="Ver captura"><img src="${esc(x.img)}" alt="Captura de ${esc(x.player)} en ${esc(x.level)}" loading="lazy" onerror="this.closest('.lshot').remove()"></button>` : ""}
         ${editing ? `<div class="lacts">${act && act.label ? `<button type="button" class="btn" data-lapply="${esc(x.id)}">${esc(act.label)}</button>` : act && act.done ? `<span class="hint">${esc(act.done)}</span>` : ""}<button type="button" class="ibtn" data-lhide="${esc(x.id)}">Ocultar</button></div>` : ""}
