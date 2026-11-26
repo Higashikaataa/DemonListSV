@@ -1,6 +1,7 @@
 // /api/envios  -> récords enviados por los jugadores, esperando aprobación
 //
-//   POST   (header x-session)          { levelId, kind:"list"|"up"|"run", levelName, progress, from, video, note }
+//   POST   (header x-session)          { levelId, kind:"list"|"up"|"run"|"copy"|"new", levelName, progress, from, video, note }
+//          kind "new" = nivel que todavía no está en la lista: { levelName, gdId, video, note, baseKind?, baseId? }
 //   GET    (header x-session)          -> los envíos pendientes de ese jugador
 //   GET    (header x-admin-password)   -> todos los envíos pendientes (moderadores)
 //   DELETE ?id=<id> (admin, o el mismo jugador para cancelar el suyo)
@@ -54,7 +55,7 @@ export async function onRequestPost({ request, env }) {
   let b;
   try { b = await request.json(); } catch { return json({ error: "Datos no válidos." }, 400); }
 
-  const kind = ["up", "run", "copy"].includes(b.kind) ? b.kind : "list";
+  const kind = ["up", "run", "copy", "new"].includes(b.kind) ? b.kind : "list";
   const from = kind === "run" ? Math.round(Number(b.from)) : 0;
   const levelId = String(b.levelId || "").slice(0, 40);
   const levelName = String(b.levelName || "").replace(/[\u0000-\u001f]/g, "").slice(0, 60);
@@ -85,6 +86,18 @@ export async function onRequestPost({ request, env }) {
     return json({ ok: true, item: { id, ...meta } });
   }
 
+  // Nivel nuevo para la lista: tiene que ser una completación (100%) con nombre e ID del nivel.
+  // Un moderador lo revisa (creadores, tags, posición) antes de agregarlo.
+  if (kind === "new") {
+    const gdId = String(b.gdId || "").trim();
+    if (levelName.length < 2) return json({ error: "Escribe el nombre del nivel." }, 400);
+    if (!/^\d{1,12}$/.test(gdId)) return json({ error: "La ID del nivel debe ser solo números." }, 400);
+    if (progress !== 100) return json({ error: "Para agregar un nivel nuevo a la lista tienes que haberlo completado (100%)." }, 400);
+    const main = await env.LIST.get("main", "json");
+    const pk = n => String(n || "").trim().toLowerCase();
+    const dup = main && Array.isArray(main.demons) ? main.demons.find(d => String(d.levelId || "").trim() === gdId || pk(d.name) === pk(levelName)) : null;
+    if (dup) return json({ error: `${dup.name} ya está en la lista. Búscalo por su nombre y envíalo desde ahí.` }, 409);
+  }
   if (!(progress >= 1 && progress <= 100)) return json({ error: "El progreso debe estar entre 1 y 100." }, 400);
   if (kind === "run" && !(from >= 0 && from < progress)) return json({ error: "El run debe empezar antes de donde termina (ej. 20 a 100)." }, 400);
   let host = "";
@@ -98,6 +111,12 @@ export async function onRequestPost({ request, env }) {
   const id = prefix + Date.now().toString(36) + crypto.randomUUID().slice(0, 6);
   const meta = { player: me.name, kind, levelId, levelName, progress, video, note, date: Date.now() };
   if (kind === "run") meta.from = from;
+  if (kind === "new") {
+    meta.levelId = "new";
+    meta.gdId = String(b.gdId).trim();
+    meta.baseKind = ["up", "run"].includes(b.baseKind) ? b.baseKind : "";
+    meta.baseId = meta.baseKind && /^[\w-]{1,40}$/.test(String(b.baseId || "")) ? String(b.baseId) : "";
+  }
   await env.LIST.put(id, "1", { metadata: meta });
   return json({ ok: true, item: { id, ...meta } });
 }
