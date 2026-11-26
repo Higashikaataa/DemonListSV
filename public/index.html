@@ -310,6 +310,10 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
 .liverow .lt .sm{color:var(--muted);font-size:.8rem;margin-top:2px}
 .liverow .lpct{font-family:var(--display);font-weight:800;font-size:1.15rem;color:var(--accent);text-align:right;white-space:nowrap}
 .liverow .lpct.beat{color:#22c55e}
+.liverow .lpct.death{color:var(--muted)}
+.liverow .lshot{grid-column:2 / -1;display:block;width:min(100%,360px);border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--surface-2);cursor:zoom-in}
+.liverow .lshot img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover}
+.shotview{display:block;max-width:100%;max-height:78vh;margin:0 auto;border-radius:10px}
 .liverow .lacts{grid-column:2 / -1;display:flex;gap:6px;flex-wrap:wrap}
 .liverow .lvl{background:none;border:none;padding:0;font:inherit;font-weight:700;color:var(--title);cursor:pointer;text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 35%,transparent)}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-bottom:14px}
@@ -3421,7 +3425,7 @@ body.is-home aside{display:none}
 
 
   // ---------- progresos en vivo (mod "What is he doing?" -> canal de Discord -> /api/envivo) ----------
-  let live = null, liveLoading = false, liveAll = false;
+  let live = null, liveLoading = false, liveAll = false, liveDeaths = true;
   async function loadLive(){
     liveLoading = true;
     try {
@@ -3476,14 +3480,15 @@ body.is-home aside{display:none}
     return {label: "Agregar a Hardest runs"};
   }
   function liveHTML(){
-    let html = `<div class="section-head"><h2>Progresos en vivo</h2><span class="count">New bests y completaciones que llegan del mod de Geode</span>
+    let html = `<div class="section-head"><h2>Progresos en vivo</h2><span class="count">New bests, completaciones, runs y muertes que llegan del mod de Geode</span>
       <button class="btn" id="liveRefresh" style="margin-left:auto">Actualizar</button></div>`;
     if (!live) return html + `<div class="empty"><strong>Cargando progresos</strong></div>`;
     if (!live.configured) return html + `<div class="empty"><strong>Todavía no está conectado</strong>${editing ? "Falta poner DISCORD_BOT_TOKEN y DISCORD_CHANNEL_ID en Cloudflare." : "Pronto vas a ver aquí los progresos de los jugadores."}</div>`;
     if (live.error && editing) html += `<p class="status err">${esc(live.error)}</p>`;
     const known = new Map(buildPlayers().map(p => [pkey(p.name), p.name]));
-    const rows = (live.items||[]).map(x => ({x, m: liveMatch(x)})).filter(r => liveAll || r.m);
-    html += `<div class="seg" role="group" aria-label="Qué niveles mostrar"><button type="button" data-lall="0" aria-pressed="${!liveAll}">Niveles de la demonlist</button><button type="button" data-lall="1" aria-pressed="${liveAll}">Todos los niveles</button></div>`;
+    const rows = (live.items||[]).map(x => ({x, m: liveMatch(x)})).filter(r => (liveAll || r.m) && (liveDeaths || (r.x.type !== "death" && !r.x.died)));
+    html += `<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center"><div class="seg" role="group" aria-label="Qué niveles mostrar"><button type="button" data-lall="0" aria-pressed="${!liveAll}">Niveles de la demonlist</button><button type="button" data-lall="1" aria-pressed="${liveAll}">Todos los niveles</button></div>
+      <label class="hint" style="display:flex;gap:6px;align-items:center;font-weight:600;margin-bottom:14px"><input type="checkbox" id="liveDeaths" ${liveDeaths ? "checked" : ""}> Mostrar muertes</label></div>`;
     html += `<p class="hint" style="margin:0 0 12px">Estos progresos los manda el mod de cada jugador y no dan puntos. Para que cuenten, envía el récord con su video en “Subir récord”.</p>`;
     if (!rows.length) return html + `<div class="empty"><strong>Todavía no hay progresos</strong>${liveAll ? "Cuando alguien consiga un new best o se pase un nivel, va a salir aquí." : "Cuando alguien consiga un new best en un nivel de la demonlist, va a salir aquí."}</div>`;
     html += `<div class="livelist">${rows.slice(0, 150).map(({x, m}) => {
@@ -3492,11 +3497,12 @@ body.is-home aside{display:none}
       const attr = !m ? "" : m.kind === "d" ? `data-demon="${esc(m.obj.id)}"` : m.kind === "u" ? `data-upopen="${esc(m.obj.id)}"` : `data-ropen="${esc(m.obj.id)}"`;
       const lv = m ? `<button type="button" class="lvl" ${attr}>${m.kind === "d" ? "#" + m.pos + " " : ""}${esc(m.obj.name)}</button>` : `<b>${esc(x.level)}</b>`;
       const where = !m ? `de ${esc(x.creator)}` : m.kind === "d" ? esc(SEC_NAME[section(m.pos)]) : m.kind === "u" ? "Futuros niveles" : "Hardest runs";
-      const verb = x.type === "beat" ? `se pasó ${lv}` : x.type === "run" ? `hizo un run de ${x.from}–${x.pct}% en ${lv}` : `consiguió un nuevo best en ${lv}`;
-      const act = editing ? liveAction(x, m) : null;
+      const verb = x.type === "beat" ? `se pasó ${lv}` : x.type === "run" ? `hizo un run de ${x.from}–${x.pct}% en ${lv}${x.died ? " (desde startpos)" : ""}` : x.type === "death" ? `murió al ${x.pct}% en ${lv}` : `consiguió un nuevo best en ${lv}`;
+      const act = editing && x.type !== "death" ? liveAction(x, m) : null;
       return `<div class="liverow">${avHTML(pname || x.player, pname ? playerAvatar(pname) : "", 36)}
         <div class="lt">${who} ${verb}<div class="sm">${where} · ${liveAgo(x.t)}</div></div>
-        <div class="lpct${x.type === "beat" ? " beat" : ""}">${x.type === "beat" ? "100%" : x.type === "run" ? `${x.from}–${x.pct}%` : x.pct + "%"}</div>
+        <div class="lpct${x.type === "beat" ? " beat" : x.type === "death" ? " death" : ""}">${x.type === "beat" ? "100%" : x.type === "run" ? `${x.from}–${x.pct}%` : x.pct + "%"}</div>
+        ${/^https:\/\/(cdn|media)\.discordapp\.(com|net)\//.test(x.img || "") ? `<button type="button" class="lshot" data-lshot="${esc(x.img)}" aria-label="Ver captura"><img src="${esc(x.img)}" alt="Captura de ${esc(x.player)} en ${esc(x.level)}" loading="lazy" onerror="this.closest('.lshot').remove()"></button>` : ""}
         ${editing ? `<div class="lacts">${act && act.label ? `<button type="button" class="btn" data-lapply="${esc(x.id)}">${esc(act.label)}</button>` : act && act.done ? `<span class="hint">${esc(act.done)}</span>` : ""}<button type="button" class="ibtn" data-lhide="${esc(x.id)}">Ocultar</button></div>` : ""}
       </div>`;
     }).join("")}</div>`;
@@ -3506,6 +3512,8 @@ body.is-home aside{display:none}
     bindPlayerLinks();
     $("#liveRefresh")?.addEventListener("click", () => { $("#liveRefresh").disabled = true; loadLive(); });
     document.querySelectorAll("[data-lall]").forEach(b => b.onclick = () => { liveAll = b.dataset.lall === "1"; render(); });
+    $("#liveDeaths")?.addEventListener("change", e => { liveDeaths = e.target.checked; render(); });
+    document.querySelectorAll("[data-lshot]").forEach(b => b.onclick = () => modal(`<img class="shotview" src="${esc(b.dataset.lshot)}" alt=""><div class="foot"><a class="btn" href="${esc(b.dataset.lshot)}" target="_blank" rel="noopener">Abrir en otra pestaña ↗</a><button type="button" class="btn primary" id="cancel">Cerrar</button></div>`, close => { $("#cancel").onclick = close; }));
     document.querySelectorAll("#view .lvl[data-demon]").forEach(b => b.onclick = () => { openDemon = b.dataset.demon; render(); window.scrollTo({top:0}); });
     document.querySelectorAll("#view .lvl[data-upopen]").forEach(b => b.onclick = () => { tab = "up"; openUp = b.dataset.upopen; render(); window.scrollTo({top:0}); });
     document.querySelectorAll("#view .lvl[data-ropen]").forEach(b => b.onclick = () => { tab = "runs"; openRun = b.dataset.ropen; render(); window.scrollTo({top:0}); });
