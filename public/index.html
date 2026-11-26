@@ -294,6 +294,16 @@ textarea.json{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;
 .bdg-pick input:checked + .bdg{outline:2px solid var(--accent)}
 .danger-zone{border:1px solid color-mix(in srgb, var(--accent) 45%, var(--line));border-radius:10px;padding:12px;margin-top:10px}
 .pbio{white-space:pre-line;overflow-wrap:anywhere;margin:10px 0 0;max-width:62ch}
+.picklist{display:flex;flex-direction:column;gap:4px;margin-top:6px;max-height:300px;overflow:auto}
+.picklist:empty,.picklist[hidden],#s_qw[hidden],#s_neww[hidden],#s_gidw[hidden]{display:none}
+.pick{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--fg);cursor:pointer;font:inherit}
+.pick:hover,.pick:focus-visible{border-color:var(--accent)}
+.pick .pp{color:var(--muted);min-width:44px;font-variant-numeric:tabular-nums;font-weight:700}
+.pick small{margin-left:auto;color:var(--muted);text-align:right}
+.pick.new{border-style:dashed;font-weight:700}
+.chosen{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px;padding:10px 12px;border:1px solid var(--accent);border-radius:10px;background:var(--surface-2)}
+.chosen b{margin-right:auto}
+.vtag{display:inline-block;margin-left:8px;padding:1px 7px;border-radius:999px;font-size:.68rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;vertical-align:middle;background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 50%,transparent)}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-bottom:14px}
 .seg button{border:none;background:var(--surface-2);padding:8px 14px;cursor:pointer;font-weight:700}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
@@ -511,23 +521,23 @@ body.is-home aside{display:none}
       const ver = (d.verifier||"").trim();
       if (ver){
         const p = get(ver); const pts = recordPoints(pos,100,req);
-        p.pts += pts; p.entries.push({d,pos,progress:100,pts,verified:true,video:d.video});
+        p.pts += pts; p.entries.push({d,pos,progress:100,pts,verified:true,video:d.video,ord:0});
         seen.add(ver.toLowerCase());
       }
-      for (const r of d.records||[]){
-        const name = (r.player||"").trim(); if (!name) continue;
+      (d.records||[]).forEach((r, ri) => {
+        const name = (r.player||"").trim(); if (!name) return;
         const k = name.toLowerCase();
         const pr = Math.max(0,Math.min(100,+r.progress||0));
         if (seen.has(k)){
           // mismo jugador repetido: se queda solo con su mejor progreso
           const p = get(name), e = p.entries.find(x => x.d === d);
-          if (e && !e.verified && pr > e.progress){ const np = recordPoints(pos,pr,req); p.pts += np - e.pts; Object.assign(e,{progress:pr,pts:np,video:r.video}); }
-          continue;
+          if (e && !e.verified && pr > e.progress){ const np = recordPoints(pos,pr,req); p.pts += np - e.pts; Object.assign(e,{progress:pr,pts:np,video:r.video,ord:ri+1}); }
+          return;
         }
         seen.add(k);
         const p = get(name), pts = recordPoints(pos,pr,req);
-        p.pts += pts; p.entries.push({d,pos,progress:pr,pts,verified:false,video:r.video});
-      }
+        p.pts += pts; p.entries.push({d,pos,progress:pr,pts,verified:false,video:r.video,ord:ri+1});
+      });
     });
     // Progresos en futuros niveles (no dan puntos)
     (state.upcoming||[]).forEach((u,i) => {
@@ -975,7 +985,7 @@ body.is-home aside{display:none}
     const listed = p.entries.filter(e => !e.upcoming);
     const by = (fn) => listed.filter(fn).sort((a,b)=>a.pos-b.pos);
     const verified = by(e => e.verified);
-    const done = by(e => e.progress >= 100 && !e.verified);
+    const done = by(e => e.progress >= 100);
     const prog = by(e => e.progress < 100);
     const upProg = p.entries.filter(e => e.upcoming).sort((a,b)=>a.upPos-b.upPos);
     const hardest = by(e => e.progress >= 100)[0];
@@ -985,7 +995,7 @@ body.is-home aside{display:none}
       const attr = e.run ? `data-ropen="${e.d.id}"` : e.upcoming ? `data-upopen="${e.d.id}"` : `data-demon="${e.d.id}"`;
       const label = e.upcoming ? "Futuro" : "#"+e.pos;
       const right = e.run ? `${e.from}–${e.progress}%` : e.upcoming ? upProgText(e.d) : (withPct ? `${e.progress}% · ` : "") + `+${fmt(e.pts)}`;
-      return `<button class="lvrow" ${attr}><span class="lvimg${src?" has":""}"${bg}></span><span class="lvpos">${label}</span><span class="lvname">${esc(e.d.name)}</span><span class="lvpts">${right}</span></button>`;
+      return `<button class="lvrow" ${attr}><span class="lvimg${src?" has":""}"${bg}></span><span class="lvpos">${label}</span><span class="lvname">${esc(e.d.name)}${e.verified ? `<span class="vtag" title="Verificado por este jugador">Verificado</span>` : ""}</span><span class="lvpts">${right}</span></button>`;
     };
     const chips = (list, withPct) => list.length
       ? `<div class="lvrows">${list.map(e => lvRow(e, withPct)).join("")}</div>`
@@ -1024,14 +1034,13 @@ body.is-home aside{display:none}
        </div>
         <div class="facts">
           <div class="fact"><span>Puntos</span><b>${fmt(p.pts)}</b></div>
-          <div class="fact"><span>Completados</span><b>${verified.length + done.length}</b></div>
+          <div class="fact"><span>Completados</span><b>${done.length}</b></div>
           <div class="fact"><span>Verificados</span><b>${verified.length}</b></div>
           <div class="fact"><span>En progreso</span><b>${prog.length + upProg.length}</b></div>
           <div class="fact"><span>Más difícil</span><b>${hardest?esc(hardest.d.name)+` (#${hardest.pos})`:"—"}</b></div>
         </div>
       </div>${info.banner ? `<div class="pbanner" style="--img:url('${cssUrl(info.banner)}')" aria-hidden="true"></div>` : ""}</div>
       <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px">
-        ${sectionBlock("Verificados", verified, false)}
         ${sectionBlock("Completados", done, false)}
         ${sectionBlock("En progreso", prog, true, upProg)}
         <div class="panel"><h3>Hardest runs · ${p.runs.length}</h3>${chips(p.runs.slice().sort((a,b)=>a.pos-b.pos), false)}</div>
@@ -2044,7 +2053,29 @@ body.is-home aside{display:none}
   }
 
   // ---------- subir récords (jugadores) ----------
-  let sendKind = "list";
+  let sendKind = "list", sendPick = null;
+  // Busca niveles para el formulario de Subir récord
+  const nameHit = (name, q) => String(name||"").toLowerCase().includes(q);
+  function pickResults(q){
+    q = q.trim().toLowerCase();
+    const posQ = /^#?\d+$/.test(q) ? Number(q.replace("#","")) : 0;
+    const out = [];
+    if (sendKind === "list"){
+      state.demons.forEach((d,i) => { if (!q || nameHit(d.name, q) || posQ === i+1) out.push({type:"d", id:d.id, name:d.name, left:"#"+(i+1), right: SEC_NAME[section(i+1)] || ""}); });
+      const lim = out.slice(0, q ? 12 : 6);
+      if (q){
+        (state.upcoming||[]).forEach(u => { if (nameHit(u.name, q)) lim.push({type:"new", baseKind:"up", baseId:u.id, name:u.name, gdId:u.levelId||"", left:"Nuevo", right:"Está en Futuros niveles · agregarlo a la lista"}); });
+        (state.runs||[]).forEach(r => { if (nameHit(r.name, q)) lim.push({type:"new", baseKind:"run", baseId:r.id, name:r.name, gdId:r.levelId||"", left:"Nuevo", right:"Está en Hardest runs · agregarlo a la lista"}); });
+      }
+      lim.push({type:"new", name:"", left:"+", right:"", label:"Nivel nuevo en la lista (todavía no está)"});
+      return lim;
+    }
+    const arr = sendKind === "run" ? (state.runs||[]) : (state.upcoming||[]);
+    arr.forEach(u => { if (!q || nameHit(u.name, q)) out.push({type: sendKind === "run" ? "r" : "u", id:u.id, name:u.name, left:"", right: sendKind === "up" && u.player ? `${u.player} · ${upProgText(u)}` : ""}); });
+    const lim = out.slice(0, q ? 12 : 8);
+    lim.push({type:"other", name:"", left:"+", right:"", label: sendKind === "run" ? "Otro nivel (nuevo en Hardest runs)" : "Otro nivel (nuevo en Futuros niveles)"});
+    return lim;
+  }
   function levelOptions(){
     const groups = [["main","Lista principal"],["ext","Lista extendida"],["leg","Legacy"]];
     return groups.map(([k,label]) => {
@@ -2068,10 +2099,14 @@ body.is-home aside{display:none}
         <button type="button" data-kind="up" aria-pressed="${sendKind==="up"}">Futuro nivel</button>
         <button type="button" data-kind="run" aria-pressed="${sendKind==="run"}">Hardest run</button>
       </div>
-      <label class="f">Nivel
-        <select id="s_lv" required>${sendKind === "list" ? levelOptions() : (sendKind === "run" ? (state.runs||[]) : ups).map(u => `<option value="${esc(u.id)}">${esc(u.name)}</option>`).join("") + `<option value="new">+ Otro nivel (escribir el nombre)</option>`}</select></label>
-      <label class="f" id="s_neww" style="margin-top:10px" hidden>Nombre del nivel
-        <input id="s_new" maxlength="60" placeholder="Ej. Tartarus"></label>
+      <label class="f" id="s_qw">Nivel
+        <input id="s_q" autocomplete="off" placeholder="Escribe el nombre del nivel (o su puesto, ej. #12)"></label>
+      <div class="picklist" id="s_res" role="listbox" aria-label="Niveles encontrados"></div>
+      <div id="s_chosen"></div>
+      <div class="grid2" id="s_neww" style="margin-top:10px" hidden>
+        <label class="f">Nombre del nivel<input id="s_new" maxlength="60" placeholder="Ej. Tartarus"></label>
+        <label class="f" id="s_gidw">ID del nivel<input id="s_gid" inputmode="numeric" maxlength="12" placeholder="Ej. 59075347"></label>
+      </div>
       <p class="hint" id="s_rule" style="margin:6px 0 0"></p>
       <div class="grid2" style="margin-top:12px">
         ${sendKind === "run" ? `<label class="f">Desde (%)<input id="s_from" type="number" min="0" max="99" required value="20"></label>` : ""}
@@ -2092,7 +2127,7 @@ body.is-home aside{display:none}
     if (!mySubs.length) return `<p class="hint" style="margin:0">No tienes envíos esperando revisión.</p>`;
     return `<div class="sublist">${mySubs.map(x => `<div class="subitem" style="grid-template-columns:minmax(0,1fr)"><div class="stxt">
       <div class="sl">${esc(x.levelName)} · ${x.kind === "copy" ? `${esc(copyTypeName(x.copyType))} · ID ${esc(x.gdId)}` : (x.kind === "run" ? x.from + "–" : "") + x.progress + "%"}</div>
-      <div class="sm">${x.kind === "up" ? "Futuro nivel · " : x.kind === "run" ? "Hardest run · " : x.kind === "copy" ? "Copia permitida · " : ""}enviado ${new Date(x.date).toLocaleDateString("es")}</div></div>
+      <div class="sm">${x.kind === "up" ? "Futuro nivel · " : x.kind === "run" ? "Hardest run · " : x.kind === "copy" ? "Copia permitida · " : x.kind === "new" ? `Nivel nuevo en la lista · ID ${esc(x.gdId)} · ` : ""}enviado ${new Date(x.date).toLocaleDateString("es")}</div></div>
       <div class="sacts">${x.video ? `<a href="${esc(x.video)}" target="_blank" rel="noopener">Video ↗</a>` : ""}<button class="ibtn" data-cancel="${esc(x.id)}">Cancelar envío</button></div></div>`).join("")}</div>`;
   }
   async function loadMySubs(){
@@ -2112,46 +2147,85 @@ body.is-home aside{display:none}
     $("#sReg")?.addEventListener("click", () => openAccountLogin("register"));
     if (!me) return;
     document.querySelectorAll("[data-kind]").forEach(b => b.onclick = () => { sendKind = b.dataset.kind; render(); });
-    const sel = $("#s_lv"), pr = $("#s_pr");
+    const pr = $("#s_pr"), q = $("#s_q"), res = $("#s_res");
+    sendPick = null;
     const upd = () => {
-      if (sendKind === "up" || sendKind === "run"){
-        const isNew = sel.value === "new", where = sendKind === "run" ? "Hardest runs" : "Futuros niveles";
-        $("#s_neww").hidden = !isNew; $("#s_new").required = isNew;
-        $("#s_rule").textContent = isNew ? `Escribe el nombre del nivel. Si lo aceptan, se agrega a ${where}.`
+      const pk = sendPick;
+      $("#s_qw").hidden = !!pk; res.hidden = !!pk;
+      $("#s_chosen").innerHTML = pk ? `<div class="chosen"><b>${pk.type === "new" || pk.type === "other" ? (pk.name ? esc(pk.name) + " · nivel nuevo" : "Nivel nuevo") : (pk.left ? esc(pk.left) + " · " : "") + esc(pk.name)}</b><button type="button" class="ibtn" id="s_change">Cambiar de nivel</button></div>` : "";
+      $("#s_change")?.addEventListener("click", () => { sendPick = null; upd(); q.value = ""; showRes(); q.focus(); });
+      const isNew = !!pk && (pk.type === "new" || pk.type === "other");
+      $("#s_neww").hidden = !isNew; $("#s_new").required = isNew;
+      $("#s_gidw").hidden = !(pk && pk.type === "new"); $("#s_gid").required = !!(pk && pk.type === "new");
+      pr.disabled = false;
+      if (!pk){ $("#s_rule").textContent = "Busca el nivel por su nombre y tócalo para elegirlo."; pr.min = 1; return; }
+      if (pk.type === "new"){
+        pr.value = 100; pr.disabled = true;
+        $("#s_rule").textContent = "Pon el nombre y la ID del nivel. Un moderador lo revisa, le agrega los creadores y las tags, y luego lo pone en la lista contigo como su primer vencedor. Para un nivel nuevo solo cuenta el 100%.";
+        return;
+      }
+      if (pk.type === "other" || pk.type === "u" || pk.type === "r"){
+        const where = sendKind === "run" ? "Hardest runs" : "Futuros niveles";
+        $("#s_rule").textContent = pk.type === "other" ? `Escribe el nombre del nivel. Si lo aceptan, se agrega a ${where}.`
           : sendKind === "run" ? "Pon dónde empieza y dónde termina tu run, por ejemplo de 20% a 100%." : "Pon el porcentaje que llevas en este nivel.";
         pr.min = 1; return;
       }
-      const rule = levelRule(sel.value); $("#s_rule").textContent = rule.text; pr.min = rule.min;
+      const rule = levelRule(pk.id); $("#s_rule").textContent = rule.text; pr.min = rule.min;
       if (+pr.value < rule.min) pr.value = rule.min === 100 ? 100 : rule.min;
     };
-    sel.addEventListener("change", upd); upd();
+    let shown = [];
+    const showRes = () => {
+      shown = pickResults(q.value);
+      res.innerHTML = shown.map((x,i) => `<button type="button" class="pick${x.type === "new" && !x.baseKind || x.type === "other" ? " new" : ""}" role="option" data-pick="${i}"><span class="pp">${esc(x.left)}</span><span>${esc(x.label || x.name)}</span>${x.right ? `<small>${esc(x.right)}</small>` : ""}</button>`).join("");
+    };
+    res.addEventListener("click", e => {
+      const b = e.target.closest("[data-pick]"); if (!b) return;
+      const x = shown[+b.dataset.pick]; if (!x) return;
+      sendPick = x;
+      upd();
+      if (x.type === "new" || x.type === "other"){
+        $("#s_new").value = x.name || (x.baseKind ? "" : q.value.trim().replace(/^#\d+$/, ""));
+        $("#s_gid").value = x.gdId || "";
+        ($("#s_new").value ? (x.type === "new" ? $("#s_gid") : $("#s_vid")) : $("#s_new")).focus();
+      } else $("#s_pr").focus();
+    });
+    q.addEventListener("input", showRes);
+    q.addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); res.querySelector("[data-pick]")?.click(); } });
+    showRes(); upd();
     $("#mySubs").innerHTML = mySubsHTML(); bindMySubs();
     if (!mySubs) loadMySubs();
     $("#sf2").addEventListener("submit", async e => {
       e.preventDefault();
-      const st = $("#s_st"), progress = Math.round(+pr.value);
-      let levelName = "";
-      if (sendKind === "list"){
-        const d = state.demons.find(x => x.id === sel.value); if (!d){ st.textContent = "Elige un nivel."; return; }
+      const st = $("#s_st"), progress = Math.round(+pr.value), pk = sendPick;
+      if (!pk){ st.textContent = "Busca el nivel y tócalo para elegirlo."; return; }
+      let levelName = "", levelId = pk.id, kind = sendKind, extra = {};
+      if (pk.type === "d"){
+        const d = state.demons.find(x => x.id === pk.id); if (!d){ st.textContent = "Ese nivel ya no está en la lista."; return; }
         const rule = levelRule(d.id);
         if (progress < 100 && progress < rule.min){ st.textContent = rule.text; return; }
         levelName = d.name;
+      } else if (pk.type === "new"){
+        levelName = $("#s_new").value.trim(); const gid = $("#s_gid").value.trim();
+        if (levelName.length < 2){ st.textContent = "Escribe el nombre del nivel."; return; }
+        if (!/^\d{1,12}$/.test(gid)){ st.textContent = "Escribe la ID del nivel (solo números)."; return; }
+        const dup = state.demons.findIndex(d => String(d.levelId||"").trim() === gid || pkey(d.name) === pkey(levelName));
+        if (dup >= 0){ st.textContent = `${state.demons[dup].name} ya está en la lista (#${dup+1}). Búscalo por su nombre.`; return; }
+        kind = "new"; levelId = "new"; extra = {gdId: gid, baseKind: pk.baseKind || "", baseId: pk.baseId || ""};
+      } else if (pk.type === "other"){
+        levelName = $("#s_new").value.trim(); levelId = "new";
+        if (levelName.length < 2){ st.textContent = "Escribe el nombre del nivel."; return; }
       } else {
-        if (sel.value === "new"){
-          levelName = $("#s_new").value.trim();
-          if (levelName.length < 2){ st.textContent = "Escribe el nombre del nivel."; return; }
-        } else {
-          const u = (sendKind === "run" ? (state.runs||[]) : (state.upcoming||[])).find(x => x.id === sel.value); if (!u){ st.textContent = "Elige un nivel."; return; }
-          levelName = u.name;
-        }
+        const u = (sendKind === "run" ? (state.runs||[]) : (state.upcoming||[])).find(x => x.id === pk.id); if (!u){ st.textContent = "Elige un nivel."; return; }
+        levelName = u.name;
       }
       const from = sendKind === "run" ? Math.round(+$("#s_from").value) : 0;
       if (sendKind === "run" && !(from >= 0 && from < progress)){ st.textContent = "El run debe empezar antes de donde termina (ej. 20 a 100)."; return; }
       st.textContent = "Enviando…";
       try {
-        await api("/api/envios", {kind: sendKind, levelId: sel.value, levelName, progress, from, video: $("#s_vid").value.trim(), note: $("#s_note").value.trim()});
-        st.textContent = "¡Enviado! Un moderador lo revisará pronto.";
-        $("#s_vid").value = ""; $("#s_note").value = ""; if ($("#s_new")) $("#s_new").value = "";
+        await api("/api/envios", {kind, levelId, levelName, progress: kind === "new" ? 100 : progress, from, video: $("#s_vid").value.trim(), note: $("#s_note").value.trim(), ...extra});
+        st.textContent = kind === "new" ? "¡Enviado! Un moderador revisará el nivel y lo agregará a la lista." : "¡Enviado! Un moderador lo revisará pronto.";
+        $("#s_vid").value = ""; $("#s_note").value = ""; $("#s_new").value = ""; $("#s_gid").value = "";
+        sendPick = null; q.value = ""; showRes(); upd();
         loadMySubs();
       } catch (err) {
         st.textContent = err.message;
@@ -2172,6 +2246,12 @@ body.is-home aside{display:none}
     render();
   }
   function subTarget(x){
+    if (x.kind === "new"){
+      const i = state.demons.findIndex(d => (x.gdId && String(d.levelId||"").trim() === String(x.gdId)) || pkey(d.name) === pkey(x.levelName));
+      if (i >= 0){ const d = state.demons[i]; return {d, pos: i+1, exists: true, text: `Ese nivel ya está en la lista (#${i+1} ${d.name}). Al aceptar se agrega como récord de 100%.`}; }
+      const base = x.baseKind === "up" ? (state.upcoming||[]).find(y => y.id === x.baseId) : x.baseKind === "run" ? (state.runs||[]).find(y => y.id === x.baseId) : null;
+      return {isNew: true, base, text: `Nivel nuevo para la lista (ID ${x.gdId})${base ? `, ahora está en ${x.baseKind === "up" ? "Futuros niveles" : "Hardest runs"}` : ""}. Al tocar “Revisar y agregar” completas los creadores, las tags y la posición; ${x.player} queda como su primer vencedor.`};
+    }
     if (x.kind === "copy"){
       const i = state.demons.findIndex(d => d.id === x.levelId); if (i < 0) return null;
       const d = state.demons[i], dup = (d.copies||[]).some(c => String(c.gdId) === String(x.gdId));
@@ -2207,14 +2287,14 @@ body.is-home aside{display:none}
     if (!pending.length) return html + `<div class="empty"><strong>No hay récords pendientes</strong>Cuando un jugador envíe uno, aparecerá aquí.</div>`;
     return html + `<div class="sublist">${pending.map(x => {
       const t = subTarget(x);
-      const where = !t ? "" : x.kind === "copy" ? `#${t.pos} · copia permitida` : x.kind === "run" ? (t.isNew ? "Hardest run nuevo" : `Hardest runs #${t.pos}`) : x.kind === "up" ? (t.isNew ? "Futuro nivel nuevo" : "Futuro nivel") : `#${t.pos} · ${section(t.pos)==="main"?"Lista principal":section(t.pos)==="ext"?"Lista extendida":"Legacy"}`;
+      const where = !t ? "" : x.kind === "new" ? (t.exists ? `#${t.pos} · ya en la lista` : "Nivel nuevo en la lista") : x.kind === "copy" ? `#${t.pos} · copia permitida` : x.kind === "run" ? (t.isNew ? "Hardest run nuevo" : `Hardest runs #${t.pos}`) : x.kind === "up" ? (t.isNew ? "Futuro nivel nuevo" : "Futuro nivel") : `#${t.pos} · ${section(t.pos)==="main"?"Lista principal":section(t.pos)==="ext"?"Lista extendida":"Legacy"}`;
       return `<div class="subitem">${avHTML(x.player, playerAvatar(x.player), 40)}<div class="stxt">
         <div class="sl">${plink(x.player)} · ${esc(x.levelName)} · ${x.kind === "copy" ? `${esc(copyTypeName(x.copyType))} · ID ${esc(x.gdId)}` : (x.kind === "run" ? x.from + "–" : "") + x.progress + "%"}</div>
         <div class="sm">${where ? esc(where) + " · " : ""}enviado ${new Date(x.date).toLocaleString("es")}</div>
         ${t ? `<div class="sm">${esc(t.text)}</div>` : `<div class="warn">Ese nivel ya no existe en la lista. Solo se puede rechazar.</div>`}
         ${x.note ? `<div class="sm">Nota: “${esc(x.note)}”</div>` : ""}</div>
         <div class="sacts">${x.video ? `<a class="btn" href="${esc(x.video)}" target="_blank" rel="noopener">Ver video ↗</a>` : ""}
-          ${t ? `<button class="btn primary" data-accept="${esc(x.id)}">Aceptar</button>` : ""}
+          ${t ? `<button class="btn primary" data-accept="${esc(x.id)}">${x.kind === "new" && t.isNew ? "Revisar y agregar" : "Aceptar"}</button>` : ""}
           <button class="btn danger" data-reject="${esc(x.id)}">Rechazar</button></div></div>`;
     }).join("")}</div>`;
   }
@@ -2222,9 +2302,10 @@ body.is-home aside{display:none}
   function notifyDiscord(x){
     if (state.discordNotify === false || x.kind === "copy") return;
     const md = v => String(v || "").replace(/([*_~`|>\\])/g, "\\$1");
-    const pos = state.demons.findIndex(d => d.id === x.levelId) + 1;
+    const pos = x.kind === "new" ? state.demons.findIndex(d => String(d.levelId||"") === String(x.gdId)) + 1 : state.demons.findIndex(d => d.id === x.levelId) + 1;
     let text;
-    if (x.kind === "run") text = `🔥 **${md(x.player)}** hizo un run de ${x.from||0}–${x.progress}% en **${md(x.levelName)}** (Hardest runs)`;
+    if (x.kind === "new") text = `🥇 El jugador **${md(x.player)}** ha sido el primer vencedor de **${md(x.levelName)}** en el país${pos ? ` (#${pos})` : ""}`;
+    else if (x.kind === "run") text = `🔥 **${md(x.player)}** hizo un run de ${x.from||0}–${x.progress}% en **${md(x.levelName)}** (Hardest runs)`;
     else if (x.kind === "up") text = `⏳ **${md(x.player)}** tiene ${x.progress}% en **${md(x.levelName)}** (Futuros niveles)`;
     else if (x.progress >= 100) text = `🏆 **${md(x.player)}** completó **${md(x.levelName)}**${pos ? ` (#${pos})` : ""}`;
     else text = `📈 **${md(x.player)}** consiguió ${x.progress}% en **${md(x.levelName)}**${pos ? ` (#${pos})` : ""}`;
@@ -2245,11 +2326,25 @@ body.is-home aside{display:none}
       render();
     });
     document.querySelectorAll("[data-accept]").forEach(b => b.onclick = async () => {
-      const x = (pending||[]).find(y => y.id === b.dataset.accept); if (!x) return;
+      let x = (pending||[]).find(y => y.id === b.dataset.accept); if (!x) return;
       const t = subTarget(x); if (!t) return;
+      if (x.kind === "new" && t.isNew){
+        const baseKey = t.base ? (x.baseKind === "up" ? "u:" : "r:") + t.base.id : "";
+        const pre = baseKey ? (levelSource(baseKey, "d") || {}) : {};
+        openDemonForm(null, {prefill: {...pre, name: x.levelName, levelId: String(x.gdId), verifier: x.player, video: x.video}, moveFrom: baseKey || null, removeDefault: true, fromSub: x});
+        return;
+      }
       b.disabled = true;
       let next;
-      if (x.kind === "copy"){
+      if (x.kind === "new"){
+        next = {...state, demons: state.demons.map(d => {
+          if (d.id !== t.d.id || pkey(d.verifier) === pkey(x.player)) return d;
+          const recs = (d.records||[]).slice(), i = recs.findIndex(r => pkey(r.player) === pkey(x.player));
+          if (i < 0) recs.push({player:x.player, progress:100, video:x.video}); else recs[i] = {...recs[i], progress:100, video:x.video};
+          return {...d, records:recs};
+        })};
+        x = {...x, kind:"list", levelId: t.d.id, levelName: t.d.name};
+      } else if (x.kind === "copy"){
         next = {...state, demons: state.demons.map(d => d.id !== x.levelId ? d
           : (d.copies||[]).some(c => String(c.gdId) === String(x.gdId)) ? d
           : {...d, copies: [...(d.copies||[]), {type: x.copyType, gdId: String(x.gdId), note: x.note || ""}]})};
@@ -2357,11 +2452,12 @@ body.is-home aside{display:none}
       const lv = map.get(dep);
       p.entries.filter(e => e.progress >= 100 && !e.upcoming).forEach(e => {
         if (!lv.has(e.d.id)) lv.set(e.d.id, {d: e.d, pos: e.pos, players: []});
-        lv.get(e.d.id).players.push({name: p.name, video: e.video || "", verified: !!e.verified});
+        lv.get(e.d.id).players.push({name: p.name, video: e.video || "", verified: !!e.verified, ord: e.ord ?? 999});
       });
     });
+    // Dentro de cada nivel, primero quien se lo pasó antes (verificador y luego los récords en el orden en que se agregaron)
     const out = new Map();
-    map.forEach((lv, id) => out.set(id, [...lv.values()].sort((a,b) => a.pos - b.pos)));
+    map.forEach((lv, id) => out.set(id, [...lv.values()].map(x => (x.players.sort((a,b) => a.ord - b.ord), x)).sort((a,b) => a.pos - b.pos)));
     return out;
   }
   function mapHTML(){
@@ -2375,7 +2471,7 @@ body.is-home aside{display:none}
         svg += `<g class="dept empty" data-tip-title="${esc(d.name)}" data-tip="Nadie de este departamento ha completado un extreme todavía."><path class="fill" d="${d.d}"/><path class="dept-out" d="${d.d}"/><text x="${d.cx}" y="${d.cy}">?</text></g>`;
         continue;
       }
-      const vid = t.players.find(p => ytThumb(p.video)) || {};
+      const vid = t.players.find(p => ytThumb(p.video)) || {}; // el primer vencedor del departamento que tenga video
       const img = ytThumb(vid.video) || profileImg(t.d);
       const [x0,y0,x1,y1] = d.box;
       svg += `<g class="dept on${openDept === d.id ? " sel" : ""}" data-dept="${d.id}" tabindex="0" role="button" aria-label="${esc(d.name)}" data-tip-title="${esc(d.name)}" data-tip="${esc(tipText(d.id))}">
@@ -2919,7 +3015,7 @@ body.is-home aside{display:none}
     const max = isNew ? state.demons.length+1 : state.demons.length;
     modal(`<h3>${isNew?"Agregar demon":"Editar demon"}</h3>
       <form id="df">
-      ${moveNotice(opts)}
+      ${opts.fromSub ? `<p class="hint" style="margin-top:0">Nivel enviado por <b>${esc(opts.fromSub.player)}</b>. Completa los creadores, las tags, la imagen y la posición. Al agregarlo, ${esc(opts.fromSub.player)} queda como su primer vencedor y se avisa en Discord.</p>` : moveNotice(opts)}
       ${showFill ? fillSelect("d", "f") : ""}
       <div class="grid2">
         <label class="f">Nombre del nivel<input id="f_name" required value="${esc(d.name)}"></label>
@@ -2989,6 +3085,18 @@ body.is-home aside{display:none}
         const p = Math.max(1, Math.min(arr.length+1, Number($("#f_pos").value)||arr.length+1));
         arr.splice(p-1, 0, nd);
         const next = applyMove({...state, demons:arr}, opts, nd.id, "d");
+        if (opts.fromSub){
+          const sub = opts.fromSub, btn = $("#df button[type=submit]");
+          btn.disabled = true; $("#formStatus").textContent = "Guardando…";
+          Promise.resolve(save(next, {log:true})).then(async ok => {
+            if (ok === false){ btn.disabled = false; $("#formStatus").textContent = "No se pudo guardar. Intenta otra vez."; return; }
+            close();
+            try { await dropSub(sub.id); setStatus(`${nd.name} agregado a la lista (#${p}).`, "ok"); } catch (err) { setStatus(err.message, "err"); }
+            notifyDiscord({...sub, kind:"new", levelName: nd.name, gdId: nd.levelId});
+            render();
+          });
+          return;
+        }
         save(next, {log:true}); close();
       });
     });
